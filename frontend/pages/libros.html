@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libros - Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-book me-2"></i>Sistema Biblioteca</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="libros.html">Libros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="prestamos.html">Préstamos</a></li>
+                    <li class="nav-item" id="navUsuarios" style="display: none;">
+                        <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="me-3" id="userName"></span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Salir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestión de Libros</h2>
+            <div>
+                <button class="btn btn-success me-2" onclick="exportarCSV()" id="btnExportar" style="display: none;">
+                    <i class="bi bi-download me-2"></i>Exportar CSV
+                </button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#libroModal" onclick="resetForm()" id="btnNuevoLibro" style="display: none;">
+                    <i class="bi bi-plus-circle me-2"></i>Nuevo Libro
+                </button>
+            </div>
+        </div>
+
+        <!-- Búsqueda -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchTitulo" placeholder="Buscar por título...">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchAutor" placeholder="Buscar por autor...">
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="searchGenero">
+                            <option value="">Todos los géneros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <button class="btn btn-primary" onclick="searchLibros()">
+                            <i class="bi bi-search me-2"></i>Buscar
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadLibros()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Limpiar
+                        </button>
+                    </div>
+                    <div id="resultInfo" class="text-muted"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de libros -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>ISBN</th>
+                                <th>Año</th>
+                                <th>Género</th>
+                                <th>Copias</th>
+                                <th>Disponibles</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="librosTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Libro -->
+    <div class="modal fade" id="libroModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Libro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="libroForm">
+                        <input type="hidden" id="libroId">
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label">Título *</label>
+                            <input type="text" class="form-control" id="titulo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="autor" class="form-label">Autor *</label>
+                            <input type="text" class="form-control" id="autor" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="isbn" class="form-label">ISBN</label>
+                            <input type="text" class="form-control" id="isbn">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="anio" class="form-label">Año de Publicación</label>
+                                <input type="number" class="form-control" id="anio" min="1900" max="2030">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="genero" class="form-label">Género</label>
+                                <input type="text" class="form-control" id="genero">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editorial" class="form-label">Editorial</label>
+                            <input type="text" class="form-control" id="editorial">
+                        </div>
+                        <div class="mb-3">
+                            <label for="copias" class="form-label">Número de Copias</label>
+                            <input type="number" class="form-control" id="copias" min="1" value="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveLibro()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js?v=1760369045"></script>
+    <script>
+        // Verificar autenticación
+        auth.requireAuth();
+        const user = auth.getUser();
+        document.getElementById('userName').textContent = user.nombre;
+
+        // Mostrar enlace de Usuarios solo para BIBLIOTECARIOS
+        if (auth.isBibliotecario()) {
+            document.getElementById('navUsuarios').style.display = 'block';
+        }
+
+        function logout() {
+            auth.logout();
+        }
+
+        async function loadGeneros() {
+            try {
+                const generos = await librosAPI.getGeneros();
+                const selectGenero = document.getElementById('searchGenero');
+                generos.forEach(genero => {
+                    const option = document.createElement('option');
+                    option.value = genero;
+                    option.textContent = genero;
+                    selectGenero.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error cargando géneros:', error);
+            }
+        }
+
+        async function loadLibros() {
+            try {
+                const response = await librosAPI.getAll(1, 100);
+                const libros = response.libros || response;
+                const total = response.total || libros.length;
+
+                renderLibros(libros, 'No hay libros');
+                updateResultInfo(libros.length, total);
+            } catch (error) {
+                alert('Error cargando libros: ' + error.message);
+            }
+        }
+
+        function updateResultInfo(showing, total) {
+            const resultInfo = document.getElementById('resultInfo');
+            if (showing === total) {
+                resultInfo.textContent = `Mostrando ${total} libros`;
+            } else {
+                resultInfo.textContent = `Mostrando ${showing} de ${total} libros`;
+            }
+        }
+
+        function renderLibros(libros, emptyMessage) {
+            const isBibliotecario = auth.isBibliotecario();
+            const html = libros.map(libro => `
+                <tr>
+                    <td>${libro.ID_LIBRO}</td>
+                    <td>${libro.TITULO}</td>
+                    <td>${libro.AUTOR}</td>
+                    <td>${libro.ISBN || '-'}</td>
+                    <td>${libro.ANIO_PUBLICACION || '-'}</td>
+                    <td>${libro.GENERO || '-'}</td>
+                    <td>${libro.NUMERO_COPIAS}</td>
+                    <td><span class="badge ${libro.COPIAS_DISPONIBLES > 0 ? 'bg-success' : 'bg-danger'}">${libro.COPIAS_DISPONIBLES}</span></td>
+                    <td>
+                        ${isBibliotecario ? `
+                            <button class="btn btn-sm btn-info" onclick='editLibro(${JSON.stringify(libro)})'> <i class="bi bi-pencil"></i> </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteLibro(${libro.ID_LIBRO})"> <i class="bi bi-trash"></i> </button>
+                        ` : '<span class="text-muted">Solo lectura</span>'}
+                    </td>
+                </tr>
+            `).join('');
+            document.getElementById('librosTable').innerHTML = html || `<tr><td colspan="9" class="text-center">${emptyMessage}</td></tr>`;
+        }
+
+        async function searchLibros() {
+            const titulo = document.getElementById('searchTitulo').value;
+            const autor = document.getElementById('searchAutor').value;
+            const genero = document.getElementById('searchGenero').value;
+
+            const params = new URLSearchParams();
+            if (titulo) params.append('titulo', titulo);
+            if (autor) params.append('autor', autor);
+            if (genero) params.append('genero', genero);
+            params.append('limit', '200');  // Limitar búsqueda a 200 resultados
+
+            try {
+                const libros = await librosAPI.search(params);
+                renderLibros(libros, 'No se encontraron resultados');
+
+                // Obtener total de libros para comparación
+                const response = await librosAPI.getAll(1, 1);
+                const total = response.total || 0;
+                updateResultInfo(libros.length, total);
+            } catch (error) {
+                alert('Error buscando libros: ' + error.message);
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('libroForm').reset();
+            document.getElementById('libroId').value = '';
+            document.getElementById('modalTitle').textContent = 'Nuevo Libro';
+        }
+
+        function editLibro(libro) {
+            document.getElementById('libroId').value = libro.ID_LIBRO;
+            document.getElementById('titulo').value = libro.TITULO;
+            document.getElementById('autor').value = libro.AUTOR;
+            document.getElementById('isbn').value = libro.ISBN || '';
+            document.getElementById('anio').value = libro.ANIO_PUBLICACION || '';
+            document.getElementById('genero').value = libro.GENERO || '';
+            document.getElementById('editorial').value = libro.EDITORIAL || '';
+            document.getElementById('copias').value = libro.NUMERO_COPIAS;
+            document.getElementById('modalTitle').textContent = 'Editar Libro';
+            
+            new bootstrap.Modal(document.getElementById('libroModal')).show();
+        }
+
+        async function saveLibro() {
+            const id = document.getElementById('libroId').value;
+
+            // Helper function para convertir strings vacíos en null
+            const emptyToNull = (value) => {
+                if (value === '' || value === null || value === undefined) return null;
+                return value;
+            };
+
+            const anioValue = document.getElementById('anio').value;
+            const copiasValue = document.getElementById('copias').value;
+
+            const data = {
+                titulo: document.getElementById('titulo').value,
+                autor: document.getElementById('autor').value,
+                isbn: emptyToNull(document.getElementById('isbn').value),
+                anio_publicacion: anioValue ? parseInt(anioValue) : null,
+                genero: emptyToNull(document.getElementById('genero').value),
+                editorial: emptyToNull(document.getElementById('editorial').value),
+                numero_copias: copiasValue ? parseInt(copiasValue) : 1
+            };
+            
+            try {
+                const response = id ? await librosAPI.update(id, data) : await librosAPI.create(data);
+                alert(response.message);
+                bootstrap.Modal.getInstance(document.getElementById('libroModal')).hide();
+                loadLibros();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteLibro(id) {
+            if (!confirm('¿Está seguro de que desea eliminar este libro?')) return;
+
+            try {
+                const response = await librosAPI.delete(id);
+                alert(response.message);
+                loadLibros();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function exportarCSV() {
+            // Obtener el token
+            const user = auth.getUser();
+            if (!user || !user.token) {
+                alert('No hay sesión activa');
+                return;
+            }
+
+            // Crear URL con token en los headers usando fetch
+            const API_URL = 'http://localhost:5000/api';
+
+            fetch(`${API_URL}/libros/export/csv`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${user.token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al exportar');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Crear enlace de descarga
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `libros_${new Date().getTime()}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                alert('Archivo CSV descargado exitosamente');
+            })
+            .catch(error => {
+                alert('Error al exportar: ' + error.message);
+            });
+        }
+
+        // Mostrar botones solo para bibliotecarios
+        if (auth.isBibliotecario()) {
+            document.getElementById('btnNuevoLibro').style.display = 'block';
+            document.getElementById('btnExportar').style.display = 'inline-block';
+        }
+
+        // Cargar géneros y libros al iniciar
+        loadGeneros();
+        loadLibros();
+    </script>
+</body>
+</html>

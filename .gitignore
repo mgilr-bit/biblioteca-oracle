@@ -1,0 +1,48 @@
+# Archivos de entorno y configuración sensible
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv310/
+ENV/
+env/
+.venv
+
+# Flask
+instance/
+.webassets-cache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Oracle
+oracle-data/
+
+# Archivos temporales
+*.tmp
+*.bak
+*.cache
+
+# Node modules (si se agregan)
+node_modules/

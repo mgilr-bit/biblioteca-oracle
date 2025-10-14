@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-book me-2"></i>Sistema Biblioteca
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="dashboard.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="libros.html">Libros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="prestamos.html">Préstamos</a>
+                    </li>
+                    <li class="nav-item" id="navUsuarios" style="display: none;">
+                        <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="me-3" id="userName"></span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Salir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="mb-4">Dashboard</h2>
+
+        <!-- Estadísticas -->
+        <div class="row mb-4" id="statsCards"></div>
+
+        <!-- Sección 1 -->
+        <div class="card mb-4" id="section1"></div>
+
+        <!-- Sección 2 -->
+        <div class="card" id="section2"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js?v=1760384366"></script>
+    <script>
+        // Verificar autenticación
+        auth.requireAuth();
+        const user = auth.getUser();
+        document.getElementById('userName').textContent = user.nombre;
+
+        // Mostrar enlace de Usuarios solo para BIBLIOTECARIOS
+        if (auth.isBibliotecario()) {
+            document.getElementById('navUsuarios').style.display = 'block';
+        }
+
+        function logout() {
+            auth.logout();
+        }
+
+        function calcularDiasRestantes(fechaDevolucion) {
+            const hoy = new Date();
+            const fechaDev = new Date(fechaDevolucion);
+            const diferencia = Math.ceil((fechaDev - hoy) / (1000 * 60 * 60 * 24));
+            return diferencia;
+        }
+
+        async function loadDashboardBibliotecario() {
+            const response = await librosAPI.getAll(1, 100);
+            const libros = response.libros || response;
+            const totalLibros = response.total || libros.length;
+
+            const prestamos = await prestamosAPI.getActivos();
+            const bajoStock = await librosAPI.getBajoStock();
+            const totalDisponibles = libros.reduce((sum, l) => sum + (l.COPIAS_DISPONIBLES || 0), 0);
+
+            // Tarjetas de estadísticas
+            document.getElementById('statsCards').innerHTML = `
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Total Libros</h6>
+                                    <h3>${totalLibros}</h3>
+                                </div>
+                                <i class="bi bi-book-fill" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Copias Disponibles</h6>
+                                    <h3>${totalDisponibles}</h3>
+                                </div>
+                                <i class="bi bi-check-circle-fill" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Préstamos Activos</h6>
+                                    <h3>${prestamos.length}</h3>
+                                </div>
+                                <i class="bi bi-arrow-repeat" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Bajo Stock</h6>
+                                    <h3>${bajoStock.length}</h3>
+                                </div>
+                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Tabla bajo stock
+            const bajoStockHtml = bajoStock.map(libro => `
+                <tr>
+                    <td>${libro.TITULO}</td>
+                    <td>${libro.AUTOR}</td>
+                    <td><span class="badge bg-danger">${libro.COPIAS_DISPONIBLES}</span></td>
+                    <td>${libro.NUMERO_COPIAS}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('section1').innerHTML = `
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-circle me-2"></i>Libros con Bajo Stock</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Autor</th>
+                                    <th>Copias Disponibles</th>
+                                    <th>Total Copias</th>
+                                </tr>
+                            </thead>
+                            <tbody>${bajoStockHtml || '<tr><td colspan="4" class="text-center">No hay libros con bajo stock</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            // Tabla préstamos
+            const prestamosHtml = prestamos.slice(0, 10).map(p => {
+                const badge = p.ESTADO === 'VENCIDO' ? 'bg-danger' : 'bg-success';
+                return `
+                    <tr>
+                        <td>${p.TITULO}</td>
+                        <td>${p.NOMBRE_USUARIO}</td>
+                        <td>${new Date(p.FECHA_PRESTAMO).toLocaleDateString()}</td>
+                        <td>${new Date(p.FECHA_DEVOLUCION_ESPERADA).toLocaleDateString()}</td>
+                        <td><span class="badge ${badge}">${p.ESTADO}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('section2').innerHTML = `
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Préstamos Activos Recientes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Libro</th>
+                                    <th>Usuario</th>
+                                    <th>Fecha Préstamo</th>
+                                    <th>Fecha Devolución</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>${prestamosHtml || '<tr><td colspan="5" class="text-center">No hay préstamos activos</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadDashboardLector() {
+            const todosPrestamos = await prestamosAPI.getByUsuario(user.id);
+            const prestamosActivos = todosPrestamos.filter(p => p.ESTADO === 'ACTIVO' || p.ESTADO === 'VENCIDO');
+            const prestamosVencidos = prestamosActivos.filter(p => p.ESTADO === 'VENCIDO');
+
+            // Calcular préstamos próximos a vencer (menos de 3 días)
+            const hoy = new Date();
+            const prestamosPorVencer = prestamosActivos.filter(p => {
+                const diasRestantes = calcularDiasRestantes(p.FECHA_DEVOLUCION_ESPERADA);
+                return diasRestantes <= 3 && diasRestantes >= 0 && p.ESTADO !== 'VENCIDO';
+            });
+
+            // Total histórico de préstamos
+            const totalHistorico = todosPrestamos.length;
+
+            // Tarjetas de estadísticas para lectores
+            document.getElementById('statsCards').innerHTML = `
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Libros Prestados</h6>
+                                    <h3>${prestamosActivos.length}</h3>
+                                    <small>Activos ahora</small>
+                                </div>
+                                <i class="bi bi-book-half" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Por Vencer</h6>
+                                    <h3>${prestamosPorVencer.length}</h3>
+                                    <small>Próximos 3 días</small>
+                                </div>
+                                <i class="bi bi-clock-history" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Vencidos</h6>
+                                    <h3>${prestamosVencidos.length}</h3>
+                                    <small>Devolver urgente</small>
+                                </div>
+                                <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title">Total Prestados</h6>
+                                    <h3>${totalHistorico}</h3>
+                                    <small>Histórico</small>
+                                </div>
+                                <i class="bi bi-journal-check" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Tabla de mis préstamos activos con días restantes
+            const misPrestamosHtml = prestamosActivos.map(p => {
+                const diasRestantes = calcularDiasRestantes(p.FECHA_DEVOLUCION_ESPERADA);
+                let badgeDias = 'bg-success';
+                let textoEstado = `${diasRestantes} días`;
+
+                if (p.ESTADO === 'VENCIDO' || diasRestantes < 0) {
+                    badgeDias = 'bg-danger';
+                    textoEstado = 'VENCIDO';
+                } else if (diasRestantes <= 3) {
+                    badgeDias = 'bg-warning';
+                    textoEstado = `${diasRestantes} días`;
+                } else if (diasRestantes <= 7) {
+                    badgeDias = 'bg-info';
+                }
+
+                return `
+                    <tr>
+                        <td>${p.TITULO}</td>
+                        <td>${p.AUTOR || '-'}</td>
+                        <td>${new Date(p.FECHA_PRESTAMO).toLocaleDateString()}</td>
+                        <td>${new Date(p.FECHA_DEVOLUCION_ESPERADA).toLocaleDateString()}</td>
+                        <td><span class="badge ${badgeDias}">${textoEstado}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('section1').innerHTML = `
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-book-half me-2"></i>Mis Préstamos Activos</h5>
+                </div>
+                <div class="card-body">
+                    ${prestamosActivos.length > 0 ? `
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Recuerda:</strong> Devuelve tus libros a tiempo para evitar sanciones.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Libro</th>
+                                        <th>Autor</th>
+                                        <th>Fecha Préstamo</th>
+                                        <th>Fecha Devolución</th>
+                                        <th>Tiempo Restante</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${misPrestamosHtml}</tbody>
+                            </table>
+                        </div>
+                    ` : `
+                        <div class="alert alert-success text-center">
+                            <i class="bi bi-check-circle me-2" style="font-size: 2rem;"></i>
+                            <h5>No tienes préstamos activos</h5>
+                            <p class="mb-0">Explora nuestro catálogo y solicita un libro al bibliotecario</p>
+                        </div>
+                    `}
+                </div>
+            `;
+
+            // Libros disponibles
+            const responseLibros = await librosAPI.getAll(1, 100);
+            const todosLosLibros = responseLibros.libros || responseLibros;
+            const librosConStock = todosLosLibros.filter(l => l.COPIAS_DISPONIBLES > 0);
+
+            const librosHtml = librosConStock.map(libro => `
+                <tr>
+                    <td>${libro.TITULO}</td>
+                    <td>${libro.AUTOR}</td>
+                    <td>${libro.GENERO || '-'}</td>
+                    <td><span class="badge bg-success">${libro.COPIAS_DISPONIBLES} disponibles</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('section2').innerHTML = `
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-bookmark-star me-2"></i>Libros Disponibles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Autor</th>
+                                    <th>Género</th>
+                                    <th>Disponibilidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>${librosHtml || '<tr><td colspan="4" class="text-center">No hay libros disponibles</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadDashboard() {
+            try {
+                const isBibliotecario = auth.isBibliotecario();
+
+                if (isBibliotecario) {
+                    await loadDashboardBibliotecario();
+                } else {
+                    await loadDashboardLector();
+                }
+
+            } catch (error) {
+                console.error('Error cargando dashboard:', error);
+                alert('Error cargando datos del dashboard');
+            }
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>

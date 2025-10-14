@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préstamos - Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-book me-2"></i>Sistema Biblioteca</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="libros.html">Libros</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="prestamos.html">Préstamos</a></li>
+                    <li class="nav-item" id="navUsuarios" style="display: none;">
+                        <a class="nav-link" href="usuarios.html">Usuarios</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="me-3" id="userName"></span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Salir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestión de Préstamos</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#prestamoModal" onclick="resetForm()" id="btnNuevoPrestamo" style="display: none;">
+                <i class="bi bi-plus-circle me-2"></i>Nuevo Préstamo
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#todos" onclick="loadPrestamos()">Todos</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#activos" onclick="loadPrestamosActivos()">Activos</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#vencidos" onclick="loadPrestamosVencidos()">Vencidos</a>
+            </li>
+        </ul>
+
+        <!-- Tabla de préstamos -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Libro</th>
+                                <th class="col-usuario">Usuario</th>
+                                <th>Fecha Préstamo</th>
+                                <th>Fecha Devolución</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prestamosTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Préstamo -->
+    <div class="modal fade" id="prestamoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo Préstamo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="prestamoForm">
+                        <div class="mb-3">
+                            <label for="libroSelect" class="form-label">Libro *</label>
+                            <select class="form-select" id="libroSelect" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="usuarioSelect" class="form-label">Usuario *</label>
+                            <select class="form-select" id="usuarioSelect" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="diasPrestamo" class="form-label">Días de Préstamo</label>
+                            <input type="number" class="form-control" id="diasPrestamo" value="14" min="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="savePrestamo()">Crear Préstamo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js?v=1760382665"></script>
+    <script>
+        // Verificar autenticación
+        auth.requireAuth();
+        const user = auth.getUser();
+        document.getElementById('userName').textContent = user.nombre;
+
+        // Mostrar enlace de Usuarios solo para BIBLIOTECARIOS
+        if (auth.isBibliotecario()) {
+            document.getElementById('navUsuarios').style.display = 'block';
+        }
+
+        function logout() {
+            auth.logout();
+        }
+
+        async function loadPrestamos() {
+            try {
+                let prestamos;
+                if (auth.isBibliotecario()) {
+                    // Bibliotecarios ven todos los préstamos
+                    prestamos = await prestamosAPI.getAll();
+                } else {
+                    // Lectores solo ven sus propios préstamos
+                    prestamos = await prestamosAPI.getByUsuario(user.id);
+                }
+                displayPrestamos(prestamos);
+            } catch (error) {
+                alert('Error cargando préstamos: ' + error.message);
+            }
+        }
+
+        async function loadPrestamosActivos() {
+            try {
+                let prestamos;
+                if (auth.isBibliotecario()) {
+                    prestamos = await prestamosAPI.getActivos();
+                } else {
+                    // Filtrar solo activos del usuario
+                    const todosPrestamos = await prestamosAPI.getByUsuario(user.id);
+                    prestamos = todosPrestamos.filter(p => p.ESTADO === 'ACTIVO' || p.ESTADO === 'VENCIDO');
+                }
+                displayPrestamos(prestamos);
+            } catch (error) {
+                alert('Error cargando préstamos activos: ' + error.message);
+            }
+        }
+
+        async function loadPrestamosVencidos() {
+            try {
+                let prestamos;
+                if (auth.isBibliotecario()) {
+                    prestamos = await prestamosAPI.getVencidos();
+                } else {
+                    // Filtrar solo vencidos del usuario
+                    const todosPrestamos = await prestamosAPI.getByUsuario(user.id);
+                    prestamos = todosPrestamos.filter(p => p.ESTADO === 'VENCIDO');
+                }
+                displayPrestamos(prestamos);
+            } catch (error) {
+                alert('Error cargando préstamos vencidos: ' + error.message);
+            }
+        }
+
+        function displayPrestamos(prestamos) {
+            const isBibliotecario = auth.isBibliotecario();
+
+            // Ocultar columna de usuario para lectores
+            const colUsuario = document.querySelectorAll('.col-usuario');
+            colUsuario.forEach(col => {
+                col.style.display = isBibliotecario ? '' : 'none';
+            });
+
+            const html = prestamos.map(p => {
+                const badgeClass = p.ESTADO === 'DEVUELTO' ? 'bg-secondary' :
+                                  p.ESTADO === 'VENCIDO' ? 'bg-danger' : 'bg-success';
+                const showReturn = p.ESTADO !== 'DEVUELTO' && isBibliotecario;
+
+                return `
+                    <tr>
+                        <td>${p.ID_PRESTAMO}</td>
+                        <td>${p.TITULO}</td>
+                        <td class="col-usuario" style="display: ${isBibliotecario ? '' : 'none'}">${p.NOMBRE_USUARIO || ''}</td>
+                        <td>${new Date(p.FECHA_PRESTAMO).toLocaleDateString()}</td>
+                        <td>${new Date(p.FECHA_DEVOLUCION_ESPERADA).toLocaleDateString()}</td>
+                        <td><span class="badge ${badgeClass}">${p.ESTADO}</span></td>
+                        <td>
+                            ${showReturn ? `
+                                <button class="btn btn-sm btn-success" onclick="devolverPrestamo(${p.ID_PRESTAMO})">
+                                    <i class="bi bi-check-circle"></i> Devolver
+                                </button>
+                            ` : p.ESTADO === 'DEVUELTO' ? '<span class="text-muted">Devuelto</span>' : '<span class="text-muted">-</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            const colspan = isBibliotecario ? '7' : '6';
+            document.getElementById('prestamosTable').innerHTML = html || `<tr><td colspan="${colspan}" class="text-center">No hay préstamos</td></tr>`;
+        }
+
+        async function resetForm() {
+            document.getElementById('prestamoForm').reset();
+            await loadLibrosSelect();
+            await loadUsuariosSelect();
+        }
+
+        async function loadLibrosSelect() {
+            try {
+                const libros = await librosAPI.getAll();
+
+                const options = libros
+                    .filter(l => l.COPIAS_DISPONIBLES > 0)
+                    .map(l => `<option value="${l.ID_LIBRO}">${l.TITULO} - ${l.AUTOR} (${l.COPIAS_DISPONIBLES} disponibles)</option>`)
+                    .join('');
+
+                document.getElementById('libroSelect').innerHTML = '<option value="">Seleccione un libro</option>' + options;
+            } catch (error) {
+                alert('Error cargando libros: ' + error.message);
+            }
+        }
+
+        async function loadUsuariosSelect() {
+            try {
+                const usuarios = await usuariosAPI.getAll();
+
+                const options = usuarios
+                    .filter(u => u.ACTIVO === 'S')
+                    .map(u => `<option value="${u.ID_USUARIO}">${u.NOMBRE} (${u.EMAIL})</option>`)
+                    .join('');
+
+                document.getElementById('usuarioSelect').innerHTML = '<option value="">Seleccione un usuario</option>' + options;
+            } catch (error) {
+                alert('Error cargando usuarios: ' + error.message);
+            }
+        }
+
+        async function savePrestamo() {
+            const id_libro = document.getElementById('libroSelect').value;
+            const id_usuario = document.getElementById('usuarioSelect').value;
+            const dias_prestamo = document.getElementById('diasPrestamo').value;
+
+            if (!id_libro || !id_usuario) {
+                alert('Seleccione un libro y un usuario');
+                return;
+            }
+
+            try {
+                const response = await prestamosAPI.create({
+                    id_libro: parseInt(id_libro),
+                    id_usuario: parseInt(id_usuario),
+                    dias_prestamo: parseInt(dias_prestamo)
+                });
+
+                alert(response.message);
+                bootstrap.Modal.getInstance(document.getElementById('prestamoModal')).hide();
+                loadPrestamos();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function devolverPrestamo(id) {
+            if (!confirm('¿Registrar la devolución de este libro?')) return;
+
+            try {
+                const response = await prestamosAPI.devolver(id);
+                alert(response.message);
+                loadPrestamos();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Mostrar botón "Nuevo Préstamo" solo para bibliotecarios
+        if (auth.isBibliotecario()) {
+            document.getElementById('btnNuevoPrestamo').style.display = 'block';
+        }
+
+        loadPrestamos();
+    </script>
+</body>
+</html>

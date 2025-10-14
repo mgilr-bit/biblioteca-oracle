@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - Sistema de Biblioteca</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="bi bi-book me-2"></i>Sistema Biblioteca</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="libros.html">Libros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="prestamos.html">Préstamos</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="usuarios.html">Usuarios</a></li>
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <span class="me-3" id="userName"></span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right"></i> Salir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-people-fill me-2"></i>Gestión de Usuarios</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#usuarioModal" onclick="resetForm()">
+                <i class="bi bi-person-plus me-2"></i>Nuevo Usuario
+            </button>
+        </div>
+
+        <!-- Filtros rápidos -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchNombre" placeholder="Buscar por nombre...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterRol">
+                            <option value="">Todos los roles</option>
+                            <option value="BIBLIOTECARIO">Bibliotecarios</option>
+                            <option value="LECTOR">Lectores</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterEstado">
+                            <option value="">Todos los estados</option>
+                            <option value="S">Activos</option>
+                            <option value="N">Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-secondary w-100" onclick="filtrarUsuarios()">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de usuarios -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Fecha Registro</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usuariosTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Usuario -->
+    <div class="modal fade" id="usuarioModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="usuarioForm">
+                        <input type="hidden" id="usuarioId">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre Completo *</label>
+                            <input type="text" class="form-control" id="nombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        <div class="mb-3" id="passwordField">
+                            <label for="password" class="form-label">Contraseña *</label>
+                            <input type="password" class="form-control" id="password" minlength="6">
+                            <small class="text-muted">Mínimo 6 caracteres</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rol" class="form-label">Rol *</label>
+                            <select class="form-select" id="rol" required>
+                                <option value="LECTOR">Lector</option>
+                                <option value="BIBLIOTECARIO">Bibliotecario</option>
+                            </select>
+                            <small class="text-muted">Los bibliotecarios tienen acceso administrativo completo</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUsuario()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.js?v=1760384366"></script>
+    <script>
+        // Verificar autenticación y que sea BIBLIOTECARIO
+        auth.requireAuth();
+        const user = auth.getUser();
+
+        // Solo bibliotecarios pueden acceder a esta página
+        if (!auth.isBibliotecario()) {
+            alert('Acceso denegado. Solo los bibliotecarios pueden gestionar usuarios.');
+            window.location.href = 'dashboard.html';
+        }
+
+        document.getElementById('userName').textContent = user.nombre;
+
+        function logout() {
+            auth.logout();
+        }
+
+        let todosLosUsuarios = [];
+
+        async function loadUsuarios() {
+            try {
+                const usuarios = await usuariosAPI.getAll();
+                todosLosUsuarios = usuarios;
+                renderUsuarios(usuarios);
+            } catch (error) {
+                alert('Error cargando usuarios: ' + error.message);
+            }
+        }
+
+        function renderUsuarios(usuarios) {
+            const html = usuarios.map(u => {
+                const badgeRol = u.ROL === 'BIBLIOTECARIO' ? 'bg-danger' : 'bg-info';
+                const badgeEstado = u.ACTIVO === 'S' ? 'bg-success' : 'bg-secondary';
+                const textoEstado = u.ACTIVO === 'S' ? 'Activo' : 'Inactivo';
+
+                return `
+                    <tr>
+                        <td>${u.ID_USUARIO}</td>
+                        <td>${u.NOMBRE}</td>
+                        <td>${u.EMAIL}</td>
+                        <td><span class="badge ${badgeRol}">${u.ROL}</span></td>
+                        <td><span class="badge ${badgeEstado}">${textoEstado}</span></td>
+                        <td>${new Date(u.FECHA_REGISTRO).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick='editUsuario(${JSON.stringify(u)})' title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            ${u.ACTIVO === 'S' ? `
+                                <button class="btn btn-sm btn-warning" onclick="toggleEstado(${u.ID_USUARIO}, 'N')" title="Desactivar">
+                                    <i class="bi bi-ban"></i>
+                                </button>
+                            ` : `
+                                <button class="btn btn-sm btn-success" onclick="toggleEstado(${u.ID_USUARIO}, 'S')" title="Activar">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                            `}
+                            ${u.ID_USUARIO !== user.id ? `
+                                <button class="btn btn-sm btn-danger" onclick="deleteUsuario(${u.ID_USUARIO})" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('usuariosTable').innerHTML = html || '<tr><td colspan="7" class="text-center">No hay usuarios</td></tr>';
+        }
+
+        function filtrarUsuarios() {
+            const nombre = document.getElementById('searchNombre').value.toLowerCase();
+            const rol = document.getElementById('filterRol').value;
+            const estado = document.getElementById('filterEstado').value;
+
+            const filtrados = todosLosUsuarios.filter(u => {
+                const matchNombre = !nombre || u.NOMBRE.toLowerCase().includes(nombre) || u.EMAIL.toLowerCase().includes(nombre);
+                const matchRol = !rol || u.ROL === rol;
+                const matchEstado = !estado || u.ACTIVO === estado;
+                return matchNombre && matchRol && matchEstado;
+            });
+
+            renderUsuarios(filtrados);
+        }
+
+        function resetForm() {
+            document.getElementById('usuarioForm').reset();
+            document.getElementById('usuarioId').value = '';
+            document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('password').required = true;
+        }
+
+        function editUsuario(usuario) {
+            document.getElementById('usuarioId').value = usuario.ID_USUARIO;
+            document.getElementById('nombre').value = usuario.NOMBRE;
+            document.getElementById('email').value = usuario.EMAIL;
+            document.getElementById('rol').value = usuario.ROL;
+            document.getElementById('modalTitle').textContent = 'Editar Usuario';
+            document.getElementById('passwordField').style.display = 'none';
+            document.getElementById('password').required = false;
+
+            new bootstrap.Modal(document.getElementById('usuarioModal')).show();
+        }
+
+        async function saveUsuario() {
+            const id = document.getElementById('usuarioId').value;
+            const nombre = document.getElementById('nombre').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rol = document.getElementById('rol').value;
+
+            if (!nombre || !email || !rol) {
+                alert('Por favor completa todos los campos obligatorios');
+                return;
+            }
+
+            if (!id && !password) {
+                alert('La contraseña es requerida para nuevos usuarios');
+                return;
+            }
+
+            try {
+                let response;
+                if (id) {
+                    // Actualizar usuario existente
+                    response = await usuariosAPI.update(id, { nombre, email, rol });
+                } else {
+                    // Crear nuevo usuario
+                    response = await usuariosAPI.createAdmin({ nombre, email, password, rol });
+                }
+
+                alert(response.message);
+                bootstrap.Modal.getInstance(document.getElementById('usuarioModal')).hide();
+                loadUsuarios();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function toggleEstado(id, nuevoEstado) {
+            const accion = nuevoEstado === 'S' ? 'activar' : 'desactivar';
+            if (!confirm(`¿Estás seguro de que deseas ${accion} este usuario?`)) return;
+
+            try {
+                const response = await usuariosAPI.toggleEstado(id, nuevoEstado);
+                alert(response.message);
+                loadUsuarios();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteUsuario(id) {
+            if (!confirm('¿Estás seguro de que deseas ELIMINAR permanentemente este usuario? Esta acción no se puede deshacer.')) return;
+
+            try {
+                const response = await usuariosAPI.delete(id);
+                alert(response.message);
+                loadUsuarios();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Cargar usuarios al inicio
+        loadUsuarios();
+
+        // Buscar al presionar Enter
+        document.getElementById('searchNombre').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') filtrarUsuarios();
+        });
+    </script>
+</body>
+</html>
