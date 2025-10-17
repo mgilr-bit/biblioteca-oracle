@@ -118,6 +118,13 @@ body {
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+html {
+    overflow-x: hidden;
+    max-width: 100vw;
 }
 
 /* Patrón de fondo sutil */
@@ -954,6 +961,26 @@ body::before {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 var(--spacing-lg);
+    overflow-x: hidden;
+}
+
+.container-fluid {
+    overflow-x: hidden;
+}
+
+/* Prevenir que elementos causen scroll horizontal */
+* {
+    max-width: 100%;
+}
+
+.row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* === ICONOS === */
