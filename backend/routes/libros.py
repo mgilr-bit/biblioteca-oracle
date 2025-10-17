@@ -19,8 +19,11 @@ def get_libros():
         # Validaciones
         if page < 1:
             page = 1
-        if per_page < 1 or per_page > 500:
+        if per_page < 1:
             per_page = 100
+        # Permitir hasta 2000 libros para cargar todos
+        if per_page > 2000:
+            per_page = 2000
 
         offset = (page - 1) * per_page
 
@@ -116,16 +119,20 @@ def get_generos():
 @libros_bp.route('/search', methods=['GET'])
 @token_required
 def search_libros():
-    """Buscar libros por título, autor o género con límite de resultados"""
+    """Buscar libros por título, autor, ISBN o género con límite de resultados"""
     try:
         titulo = request.args.get('titulo', '')
         autor = request.args.get('autor', '')
+        isbn = request.args.get('isbn', '')
         genero = request.args.get('genero', '')
         limit = request.args.get('limit', 200, type=int)  # Límite por defecto de 200 resultados
 
         # Validar límite
-        if limit < 1 or limit > 500:
+        if limit < 1:
             limit = 200
+        # Permitir hasta 2000 resultados
+        if limit > 2000:
+            limit = 2000
 
         query = """
             SELECT id_libro, titulo, autor, isbn, anio_publicacion,
@@ -143,6 +150,10 @@ def search_libros():
         if autor:
             query += " AND UPPER(autor) LIKE UPPER(:autor)"
             params['autor'] = f"%{autor}%"
+
+        if isbn:
+            query += " AND UPPER(isbn) LIKE UPPER(:isbn)"
+            params['isbn'] = f"%{isbn}%"
 
         if genero:
             query += " AND UPPER(genero) LIKE UPPER(:genero)"
@@ -390,4 +401,39 @@ def export_libros_csv():
 
     except Exception as e:
         logger.error(f"Error exportando a CSV: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@libros_bp.route('/estadisticas', methods=['GET'])
+@token_required
+def get_estadisticas():
+    """Obtener estadísticas globales de libros"""
+    try:
+        query = """
+            SELECT
+                COUNT(*) as total_libros,
+                SUM(copias_disponibles) as total_disponibles,
+                SUM(numero_copias) as total_copias,
+                COUNT(CASE WHEN copias_disponibles <= 2 AND numero_copias > 0 THEN 1 END) as bajo_stock
+            FROM libros
+        """
+        result = db.execute_query(query)
+
+        if result:
+            stats = result[0]
+            return jsonify({
+                'total_libros': stats.get('TOTAL_LIBROS', 0),
+                'total_disponibles': stats.get('TOTAL_DISPONIBLES', 0),
+                'total_copias': stats.get('TOTAL_COPIAS', 0),
+                'bajo_stock': stats.get('BAJO_STOCK', 0)
+            })
+
+        return jsonify({
+            'total_libros': 0,
+            'total_disponibles': 0,
+            'total_copias': 0,
+            'bajo_stock': 0
+        })
+
+    except Exception as e:
+        logger.error(f"Error obteniendo estadísticas: {str(e)}")
         return jsonify({"error": str(e)}), 500

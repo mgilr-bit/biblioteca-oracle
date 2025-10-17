@@ -17,14 +17,18 @@ def get_prestamos():
                    p.fecha_prestamo, p.fecha_devolucion_esperada,
                    p.fecha_devolucion_real, p.estado,
                    l.titulo, l.autor,
-                   u.nombre as nombre_usuario
+                   u.nombre as nombre_usuario,
+                   CASE
+                       WHEN p.estado = 'ACTIVO' AND p.fecha_devolucion_esperada < SYSDATE THEN 'VENCIDO'
+                       ELSE p.estado
+                   END as estado_calculado
             FROM prestamos p
             JOIN libros l ON p.id_libro = l.id_libro
             JOIN usuarios u ON p.id_usuario = u.id_usuario
             ORDER BY p.fecha_prestamo DESC
         """
         prestamos = db.execute_query(query)
-        
+
         for prestamo in prestamos:
             if prestamo.get('FECHA_PRESTAMO'):
                 prestamo['FECHA_PRESTAMO'] = str(prestamo['FECHA_PRESTAMO'])
@@ -32,7 +36,11 @@ def get_prestamos():
                 prestamo['FECHA_DEVOLUCION_ESPERADA'] = str(prestamo['FECHA_DEVOLUCION_ESPERADA'])
             if prestamo.get('FECHA_DEVOLUCION_REAL'):
                 prestamo['FECHA_DEVOLUCION_REAL'] = str(prestamo['FECHA_DEVOLUCION_REAL'])
-        
+            # Usar el estado calculado
+            if prestamo.get('ESTADO_CALCULADO'):
+                prestamo['ESTADO'] = prestamo['ESTADO_CALCULADO']
+                del prestamo['ESTADO_CALCULADO']
+
         return jsonify(prestamos)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -47,21 +55,29 @@ def get_prestamos_activos():
                    p.fecha_prestamo, p.fecha_devolucion_esperada,
                    p.estado,
                    l.titulo, l.autor,
-                   u.nombre as nombre_usuario
+                   u.nombre as nombre_usuario,
+                   CASE
+                       WHEN p.estado = 'ACTIVO' AND p.fecha_devolucion_esperada < SYSDATE THEN 'VENCIDO'
+                       ELSE p.estado
+                   END as estado_calculado
             FROM prestamos p
             JOIN libros l ON p.id_libro = l.id_libro
             JOIN usuarios u ON p.id_usuario = u.id_usuario
-            WHERE p.estado IN ('ACTIVO', 'VENCIDO')
+            WHERE p.estado = 'ACTIVO'
             ORDER BY p.fecha_devolucion_esperada
         """
         prestamos = db.execute_query(query)
-        
+
         for prestamo in prestamos:
             if prestamo.get('FECHA_PRESTAMO'):
                 prestamo['FECHA_PRESTAMO'] = str(prestamo['FECHA_PRESTAMO'])
             if prestamo.get('FECHA_DEVOLUCION_ESPERADA'):
                 prestamo['FECHA_DEVOLUCION_ESPERADA'] = str(prestamo['FECHA_DEVOLUCION_ESPERADA'])
-        
+            # Usar el estado calculado
+            if prestamo.get('ESTADO_CALCULADO'):
+                prestamo['ESTADO'] = prestamo['ESTADO_CALCULADO']
+                del prestamo['ESTADO_CALCULADO']
+
         return jsonify(prestamos)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -75,14 +91,18 @@ def get_prestamos_usuario(id_usuario):
             SELECT p.id_prestamo, p.id_libro,
                    p.fecha_prestamo, p.fecha_devolucion_esperada,
                    p.fecha_devolucion_real, p.estado,
-                   l.titulo, l.autor
+                   l.titulo, l.autor,
+                   CASE
+                       WHEN p.estado = 'ACTIVO' AND p.fecha_devolucion_esperada < SYSDATE THEN 'VENCIDO'
+                       ELSE p.estado
+                   END as estado_calculado
             FROM prestamos p
             JOIN libros l ON p.id_libro = l.id_libro
             WHERE p.id_usuario = :id_usuario
             ORDER BY p.fecha_prestamo DESC
         """
         prestamos = db.execute_query(query, {"id_usuario": id_usuario})
-        
+
         for prestamo in prestamos:
             if prestamo.get('FECHA_PRESTAMO'):
                 prestamo['FECHA_PRESTAMO'] = str(prestamo['FECHA_PRESTAMO'])
@@ -90,7 +110,11 @@ def get_prestamos_usuario(id_usuario):
                 prestamo['FECHA_DEVOLUCION_ESPERADA'] = str(prestamo['FECHA_DEVOLUCION_ESPERADA'])
             if prestamo.get('FECHA_DEVOLUCION_REAL'):
                 prestamo['FECHA_DEVOLUCION_REAL'] = str(prestamo['FECHA_DEVOLUCION_REAL'])
-        
+            # Usar el estado calculado
+            if prestamo.get('ESTADO_CALCULADO'):
+                prestamo['ESTADO'] = prestamo['ESTADO_CALCULADO']
+                del prestamo['ESTADO_CALCULADO']
+
         return jsonify(prestamos)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -124,6 +124,13 @@ const librosAPI = {
             headers: getAuthHeaders()
         });
         return handleResponse(response);
+    },
+
+    getEstadisticas: async () => {
+        const response = await fetch(`${API_URL}/libros/estadisticas`, {
+            headers: getAuthHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

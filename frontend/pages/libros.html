@@ -51,13 +51,16 @@
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <input type="text" class="form-control" id="searchTitulo" placeholder="Buscar por título...">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <input type="text" class="form-control" id="searchAutor" placeholder="Buscar por autor...">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="searchISBN" placeholder="Buscar por ISBN...">
+                    </div>
+                    <div class="col-md-3">
                         <select class="form-select" id="searchGenero">
                             <option value="">Todos los géneros</option>
                         </select>
@@ -97,6 +100,14 @@
                         </thead>
                         <tbody id="librosTable"></tbody>
                     </table>
+                </div>
+
+                <!-- Paginación -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div id="paginationInfo" class="text-muted"></div>
+                    <nav aria-label="Paginación de libros">
+                        <ul class="pagination mb-0" id="paginationControls"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -154,7 +165,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/api.js?v=1760369045"></script>
+    <script src="../js/api.js?v=1760674213"></script>
     <script>
         // Verificar autenticación
         auth.requireAuth();
@@ -169,6 +180,11 @@
         function logout() {
             auth.logout();
         }
+
+        // Variables de paginación
+        let allLibros = [];
+        let currentPage = 1;
+        const itemsPerPage = 50;
 
         async function loadGeneros() {
             try {
@@ -187,15 +203,114 @@
 
         async function loadLibros() {
             try {
-                const response = await librosAPI.getAll(1, 100);
-                const libros = response.libros || response;
-                const total = response.total || libros.length;
+                // Limpiar campos de búsqueda
+                document.getElementById('searchTitulo').value = '';
+                document.getElementById('searchAutor').value = '';
+                document.getElementById('searchISBN').value = '';
+                document.getElementById('searchGenero').value = '';
 
-                renderLibros(libros, 'No hay libros');
-                updateResultInfo(libros.length, total);
+                // Cargar todos los libros
+                const response = await librosAPI.getAll(1, 1000);
+                allLibros = response.libros || response;
+                currentPage = 1;
+
+                renderPaginatedLibros();
             } catch (error) {
                 alert('Error cargando libros: ' + error.message);
             }
+        }
+
+        function renderPaginatedLibros() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedLibros = allLibros.slice(startIndex, endIndex);
+
+            renderLibros(paginatedLibros, 'No hay libros');
+            renderPagination();
+            updatePaginationInfo();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(allLibros.length / itemsPerPage);
+            const paginationControls = document.getElementById('paginationControls');
+
+            if (totalPages <= 1) {
+                paginationControls.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Botón anterior
+            html += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+
+            // Páginas
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(1); return false;">1</a></li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="goToPage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(${totalPages}); return false;">${totalPages}</a></li>`;
+            }
+
+            // Botón siguiente
+            html += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+
+            paginationControls.innerHTML = html;
+        }
+
+        function updatePaginationInfo() {
+            const startIndex = (currentPage - 1) * itemsPerPage + 1;
+            const endIndex = Math.min(currentPage * itemsPerPage, allLibros.length);
+            const totalPages = Math.ceil(allLibros.length / itemsPerPage);
+
+            document.getElementById('paginationInfo').textContent =
+                `Mostrando ${startIndex}-${endIndex} de ${allLibros.length} libros (Página ${currentPage} de ${totalPages})`;
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(allLibros.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+
+            currentPage = page;
+            renderPaginatedLibros();
+
+            // Scroll hacia arriba
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updateResultInfo(showing, total) {
@@ -233,22 +348,27 @@
         async function searchLibros() {
             const titulo = document.getElementById('searchTitulo').value;
             const autor = document.getElementById('searchAutor').value;
+            const isbn = document.getElementById('searchISBN').value;
             const genero = document.getElementById('searchGenero').value;
 
             const params = new URLSearchParams();
             if (titulo) params.append('titulo', titulo);
             if (autor) params.append('autor', autor);
+            if (isbn) params.append('isbn', isbn);
             if (genero) params.append('genero', genero);
-            params.append('limit', '200');  // Limitar búsqueda a 200 resultados
+            params.append('limit', '2000');  // Limitar búsqueda a 2000 resultados
 
             try {
-                const libros = await librosAPI.search(params);
-                renderLibros(libros, 'No se encontraron resultados');
+                allLibros = await librosAPI.search(params);
+                currentPage = 1;
 
-                // Obtener total de libros para comparación
-                const response = await librosAPI.getAll(1, 1);
-                const total = response.total || 0;
-                updateResultInfo(libros.length, total);
+                if (allLibros.length === 0) {
+                    renderLibros([], 'No se encontraron resultados');
+                    document.getElementById('paginationControls').innerHTML = '';
+                    document.getElementById('paginationInfo').textContent = 'No hay resultados';
+                } else {
+                    renderPaginatedLibros();
+                }
             } catch (error) {
                 alert('Error buscando libros: ' + error.message);
             }

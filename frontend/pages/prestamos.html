@@ -42,16 +42,47 @@
             </button>
         </div>
 
-        <!-- Filtros -->
+        <!-- Filtros de búsqueda -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="filterFechaPrestamo" class="form-label">Fecha de Préstamo</label>
+                        <input type="date" class="form-control" id="filterFechaPrestamo">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterFechaDevolucion" class="form-label">Fecha de Devolución</label>
+                        <input type="date" class="form-control" id="filterFechaDevolucion">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterLibro" class="form-label">Libro</label>
+                        <input type="text" class="form-control" id="filterLibro" placeholder="Buscar por título...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="button" class="btn btn-primary me-2" onclick="applyFilters()">
+                                <i class="bi bi-search me-1"></i>Filtrar
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                <i class="bi bi-x-circle me-1"></i>Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros por estado -->
         <ul class="nav nav-tabs mb-3">
             <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#todos" onclick="loadPrestamos()">Todos</a>
+                <a class="nav-link active" href="javascript:void(0)" onclick="setActiveTab(this); loadPrestamos()">Todos</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#activos" onclick="loadPrestamosActivos()">Activos</a>
+                <a class="nav-link" href="javascript:void(0)" onclick="setActiveTab(this); loadPrestamosActivos()">Activos</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#vencidos" onclick="loadPrestamosVencidos()">Vencidos</a>
+                <a class="nav-link" href="javascript:void(0)" onclick="setActiveTab(this); loadPrestamosVencidos()">Vencidos</a>
             </li>
         </ul>
 
@@ -64,6 +95,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Libro</th>
+                                <th>Autor</th>
                                 <th class="col-usuario">Usuario</th>
                                 <th>Fecha Préstamo</th>
                                 <th>Fecha Devolución</th>
@@ -111,7 +143,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/api.js?v=1760382665"></script>
+    <script src="../js/api.js?v=1760677400"></script>
     <script>
         // Verificar autenticación
         auth.requireAuth();
@@ -127,33 +159,124 @@
             auth.logout();
         }
 
+        // Variables para almacenar todos los préstamos
+        let allPrestamos = [];
+        let currentFilter = 'todos'; // todos, activos, vencidos
+
+        function filterPrestamos(prestamos) {
+            const fechaPrestamo = document.getElementById('filterFechaPrestamo').value;
+            const fechaDevolucion = document.getElementById('filterFechaDevolucion').value;
+            const libro = document.getElementById('filterLibro').value.toLowerCase();
+
+            return prestamos.filter(p => {
+                // Filtrar por fecha de préstamo
+                if (fechaPrestamo) {
+                    try {
+                        // Extraer solo la fecha sin hora (manejar diferentes formatos)
+                        let prestDateStr = p.FECHA_PRESTAMO ? p.FECHA_PRESTAMO.split('T')[0].trim() : '';
+
+                        // Si la fecha tiene formato con espacios (ej: "2025-10-17 03:33:59"), extraer solo la parte de fecha
+                        if (prestDateStr.includes(' ')) {
+                            prestDateStr = prestDateStr.split(' ')[0];
+                        }
+
+                        console.log('Comparando fecha préstamo - DB:', prestDateStr, 'vs Filtro:', fechaPrestamo);
+
+                        if (prestDateStr !== fechaPrestamo) {
+                            return false;
+                        }
+                    } catch (e) {
+                        console.error('Error parseando fecha de préstamo:', e);
+                        return false;
+                    }
+                }
+
+                // Filtrar por fecha de devolución
+                if (fechaDevolucion) {
+                    try {
+                        // Extraer solo la fecha sin hora (manejar diferentes formatos)
+                        let devDateStr = p.FECHA_DEVOLUCION_ESPERADA ? p.FECHA_DEVOLUCION_ESPERADA.split('T')[0].trim() : '';
+
+                        // Si la fecha tiene formato con espacios (ej: "2025-10-24 00:00:00"), extraer solo la parte de fecha
+                        if (devDateStr.includes(' ')) {
+                            devDateStr = devDateStr.split(' ')[0];
+                        }
+
+                        console.log('Comparando fecha devolución - DB:', devDateStr, 'vs Filtro:', fechaDevolucion);
+
+                        if (devDateStr !== fechaDevolucion) {
+                            return false;
+                        }
+                    } catch (e) {
+                        console.error('Error parseando fecha de devolución:', e);
+                        return false;
+                    }
+                }
+
+                // Filtrar por libro
+                if (libro && p.TITULO && !p.TITULO.toLowerCase().includes(libro)) {
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        function applyFilters() {
+            console.log('========== APLICANDO FILTROS ==========');
+            if (allPrestamos.length === 0) {
+                return;
+            }
+            const filtered = filterPrestamos(allPrestamos);
+            console.log('applyFilters - resultados filtrados:', filtered.length);
+            console.log('applyFilters - préstamos encontrados:', filtered);
+            displayPrestamos(filtered);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterFechaPrestamo').value = '';
+            document.getElementById('filterFechaDevolucion').value = '';
+            document.getElementById('filterLibro').value = '';
+            displayPrestamos(allPrestamos);
+        }
+
+        function setActiveTab(element) {
+            // Remover clase active de todas las pestañas
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Agregar clase active a la pestaña clickeada
+            element.classList.add('active');
+        }
+
         async function loadPrestamos() {
             try {
-                let prestamos;
+                currentFilter = 'todos';
                 if (auth.isBibliotecario()) {
                     // Bibliotecarios ven todos los préstamos
-                    prestamos = await prestamosAPI.getAll();
+                    allPrestamos = await prestamosAPI.getAll();
                 } else {
                     // Lectores solo ven sus propios préstamos
-                    prestamos = await prestamosAPI.getByUsuario(user.id);
+                    allPrestamos = await prestamosAPI.getByUsuario(user.id);
                 }
-                displayPrestamos(prestamos);
+                clearFilters();
             } catch (error) {
+                console.error('Error cargando préstamos:', error);
                 alert('Error cargando préstamos: ' + error.message);
             }
         }
 
         async function loadPrestamosActivos() {
             try {
-                let prestamos;
+                currentFilter = 'activos';
                 if (auth.isBibliotecario()) {
-                    prestamos = await prestamosAPI.getActivos();
+                    allPrestamos = await prestamosAPI.getActivos();
                 } else {
                     // Filtrar solo activos del usuario
                     const todosPrestamos = await prestamosAPI.getByUsuario(user.id);
-                    prestamos = todosPrestamos.filter(p => p.ESTADO === 'ACTIVO' || p.ESTADO === 'VENCIDO');
+                    allPrestamos = todosPrestamos.filter(p => p.ESTADO === 'ACTIVO' || p.ESTADO === 'VENCIDO');
                 }
-                displayPrestamos(prestamos);
+                clearFilters();
             } catch (error) {
                 alert('Error cargando préstamos activos: ' + error.message);
             }
@@ -161,15 +284,15 @@
 
         async function loadPrestamosVencidos() {
             try {
-                let prestamos;
+                currentFilter = 'vencidos';
                 if (auth.isBibliotecario()) {
-                    prestamos = await prestamosAPI.getVencidos();
+                    allPrestamos = await prestamosAPI.getVencidos();
                 } else {
                     // Filtrar solo vencidos del usuario
                     const todosPrestamos = await prestamosAPI.getByUsuario(user.id);
-                    prestamos = todosPrestamos.filter(p => p.ESTADO === 'VENCIDO');
+                    allPrestamos = todosPrestamos.filter(p => p.ESTADO === 'VENCIDO');
                 }
-                displayPrestamos(prestamos);
+                clearFilters();
             } catch (error) {
                 alert('Error cargando préstamos vencidos: ' + error.message);
             }
@@ -193,6 +316,7 @@
                     <tr>
                         <td>${p.ID_PRESTAMO}</td>
                         <td>${p.TITULO}</td>
+                        <td>${p.AUTOR || '-'}</td>
                         <td class="col-usuario" style="display: ${isBibliotecario ? '' : 'none'}">${p.NOMBRE_USUARIO || ''}</td>
                         <td>${new Date(p.FECHA_PRESTAMO).toLocaleDateString()}</td>
                         <td>${new Date(p.FECHA_DEVOLUCION_ESPERADA).toLocaleDateString()}</td>
@@ -208,7 +332,7 @@
                 `;
             }).join('');
 
-            const colspan = isBibliotecario ? '7' : '6';
+            const colspan = isBibliotecario ? '8' : '7';
             document.getElementById('prestamosTable').innerHTML = html || `<tr><td colspan="${colspan}" class="text-center">No hay préstamos</td></tr>`;
         }
 
@@ -220,7 +344,8 @@
 
         async function loadLibrosSelect() {
             try {
-                const libros = await librosAPI.getAll();
+                const response = await librosAPI.getAll();
+                const libros = response.libros || response;
 
                 const options = libros
                     .filter(l => l.COPIAS_DISPONIBLES > 0)
