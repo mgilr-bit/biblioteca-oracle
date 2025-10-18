@@ -143,7 +143,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../js/api.js?v=1760678200"></script>
+    <script src="../js/api.js?v=1760679000"></script>
     <script>
         // Verificar autenticación
         auth.requireAuth();
@@ -337,7 +337,7 @@
 
         async function loadLibrosSelect() {
             try {
-                const response = await librosAPI.getAll();
+                const response = await librosAPI.getAll(1, 2000);
                 const libros = response.libros || response;
 
                 const options = libros
