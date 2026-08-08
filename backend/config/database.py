@@ -1,89 +1,65 @@
-import oracledb
+"""Configuración de conexión a Oracle Database usando SQLModel (SQLAlchemy)."""
 import os
-from dotenv import load_dotenv
+from contextlib import contextmanager
 from pathlib import Path
+
+from dotenv import load_dotenv
+from sqlalchemy import text
+from sqlalchemy.engine import URL
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session, SQLModel, create_engine
 
 # Cargar .env desde el directorio raíz del proyecto
 env_path = Path(__file__).resolve().parent.parent.parent / '.env'
 load_dotenv(dotenv_path=env_path, override=True)
 
-class Database:
-    def __init__(self):
-        self.user = os.getenv('DB_USER')
-        self.password = os.getenv('DB_PASSWORD')
-        self.host = os.getenv('DB_HOST')
-        self.port = os.getenv('DB_PORT')
-        self.service = os.getenv('DB_SERVICE')
-        self.dsn = f"{self.host}:{self.port}/{self.service}"
-        
-    def get_connection(self):
-        """Obtiene una conexión a la base de datos"""
-        try:
-            connection = oracledb.connect(
-                user=self.user,
-                password=self.password,
-                dsn=self.dsn
-            )
-            return connection
-        except oracledb.Error as e:
-            print(f"Error conectando a la base de datos: {e}")
-            raise
-    
-    def execute_query(self, query, params=None, fetch=True):
-        """Ejecuta una consulta y retorna los resultados"""
-        connection = None
-        cursor = None
-        try:
-            connection = self.get_connection()
-            cursor = connection.cursor()
-            
-            if params:
-                cursor.execute(query, params)
-            else:
-                cursor.execute(query)
-            
-            if fetch:
-                columns = [col[0] for col in cursor.description] if cursor.description else []
-                rows = cursor.fetchall()
-                result = [dict(zip(columns, row)) for row in rows]
-                return result
-            else:
-                connection.commit()
-                return {"affected_rows": cursor.rowcount}
-                
-        except oracledb.Error as e:
-            if connection:
-                connection.rollback()
-            print(f"Error ejecutando query: {e}")
-            raise
-        finally:
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
-    
-    def execute_many(self, query, data_list):
-        """Ejecuta múltiples inserts/updates"""
-        connection = None
-        cursor = None
-        try:
-            connection = self.get_connection()
-            cursor = connection.cursor()
-            cursor.executemany(query, data_list)
-            connection.commit()
-            return {"affected_rows": cursor.rowcount}
-        except oracledb.Error as e:
-            if connection:
-                connection.rollback()
-            print(f"Error ejecutando query: {e}")
-            raise
-        finally:
-            if cursor:
-                cursor.close()
-            if connection:
-                connection.close()
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = os.getenv('DB_PORT', '1521')
+DB_SERVICE = os.getenv('DB_SERVICE', 'XEPDB1')
 
-# Instancia global
-db = Database()
+_database_url = URL.create(
+    "oracle+oracledb",
+    username=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=int(DB_PORT) if DB_PORT else None,
+    query={"service_name": DB_SERVICE},
+)
+
+engine = create_engine(_database_url, pool_pre_ping=True, echo=False)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    class_=Session,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
 
 
+@contextmanager
+def get_session():
+    """Provee una sesión por request, confirmando o revirtiendo al final."""
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def check_connection() -> None:
+    """Verifica que la conexión a la base de datos sea funcional."""
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1 FROM DUAL"))
+
+
+def init_db() -> None:
+    """Crea las tablas si no existen (solo para entornos de prueba)."""
+    import models  # noqa: F401  (registra las entidades en la metadata)
+    SQLModel.metadata.create_all(engine)

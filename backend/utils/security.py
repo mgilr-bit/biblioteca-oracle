@@ -44,33 +44,6 @@ def decode_token(token: str) -> dict:
     except jwt.InvalidTokenError:
         raise ValueError('Token inválido')
 
-def token_required(f):
-    """Decorator to require JWT token"""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-
-        # Get token from header
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            try:
-                token = auth_header.split(' ')[1]  # Bearer <token>
-            except IndexError:
-                return jsonify({'error': 'Formato de token inválido'}), 401
-
-        if not token:
-            return jsonify({'error': 'Token requerido'}), 401
-
-        try:
-            payload = decode_token(token)
-            request.user = payload
-        except ValueError as e:
-            return jsonify({'error': str(e)}), 401
-
-        return f(*args, **kwargs)
-
-    return decorated
-
 def role_required(roles: list):
     """Decorator to require specific roles"""
     def decorator(f):
