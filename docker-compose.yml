@@ -1,0 +1,56 @@
+services:
+  db:
+    image: gvenzl/oracle-xe:21.3.0-slim
+    container_name: biblioteca-db
+    environment:
+      ORACLE_PASSWORD: oracle
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+      - ./database:/opt/proyecto-sql:ro
+      - ./database/initdb:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+    shm_size: 1g
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: biblioteca-backend
+    environment:
+      DB_USER: biblioteca_user
+      DB_PASSWORD: BiblioPass123
+      DB_HOST: db
+      DB_PORT: "1521"
+      DB_SERVICE: XEPDB1
+      SECRET_KEY: ${SECRET_KEY:-cambiar_esta_clave_en_produccion}
+      ALLOWED_ORIGINS: http://localhost:5500,http://127.0.0.1:5500,http://localhost:5000,http://127.0.0.1:5000
+      PORT: "5000"
+      FLASK_DEBUG: "True"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: biblioteca-frontend
+    ports:
+      - "5500:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  oracle-data:
