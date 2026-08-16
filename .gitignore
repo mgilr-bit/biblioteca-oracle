@@ -46,3 +46,6 @@ oracle-data/
 
 # Node modules (si se agregan)
 node_modules/
+
+# Archivo de Claude
+.claude/

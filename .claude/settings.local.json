@@ -4,9 +4,19 @@
       "Bash(lsof:*)",
       "Bash(awk:*)",
       "Bash(python3:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(py -0p)",
+      "Bash(py --list)",
+      "Bash(venv/Scripts/python.exe -m pip index versions pandas)",
+      "Bash(venv/Scripts/python.exe -m pip download oracledb --no-deps -d \"/c/Users/Manases/AppData/Local/Temp/claude/c--Users-Manases-Desktop-Universidad-Tareas-U-10mo-semestre-Seminario-biblioteca-universidad-biblioteca-oracle/38f0229c-410d-46cf-8590-0cca402301cd/scratchpad/pdcheck\" --only-binary=:all:)",
+      "Bash(venv/Scripts/python.exe -m pip download \"oracledb>=3.0.0,<4.0.0\" --no-deps -d \"/c/Users/Manases/AppData/Local/Temp/claude/c--Users-Manases-Desktop-Universidad-Tareas-U-10mo-semestre-Seminario-biblioteca-universidad-biblioteca-oracle/38f0229c-410d-46cf-8590-0cca402301cd/scratchpad/pdcheck\" --only-binary=:all:)",
+      "Bash(venv/Scripts/python.exe -m pip install -r requirements.txt)",
+      "Bash(rm -rf \"/c/Users/Manases/AppData/Local/Temp/claude/c--Users-Manases-Desktop-Universidad-Tareas-U-10mo-semestre-Seminario-biblioteca-universidad-biblioteca-oracle/38f0229c-410d-46cf-8590-0cca402301cd/scratchpad/pdcheck\")"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\Manases\\AppData\\Local\\Temp\\claude\\c--Users-Manases-Desktop-Universidad-Tareas-U-10mo-semestre-Seminario-biblioteca-universidad-biblioteca-oracle\\38f0229c-410d-46cf-8590-0cca402301cd\\scratchpad\\pdcheck"
+    ]
   }
 }

@@ -3,9 +3,9 @@ DELETE FROM prestamos;
 DELETE FROM libros;
 DELETE FROM usuarios;
 
-INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Admin Biblioteca', 'admin@biblioteca.com', 'admin123', 'BIBLIOTECARIO');
-INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Juan Perez', 'juan@email.com', 'lector123', 'LECTOR');
-INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Maria Garcia', 'maria@email.com', 'lector123', 'LECTOR');
+INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Admin Biblioteca', 'admin@biblioteca.com', '$2b$12$f9OHyufcs1NHqsiPvJirVeMO0NAsIE8KeHFjJL6vwrK0YazSp77la', 'BIBLIOTECARIO');
+INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Juan Perez', 'juan@email.com', '$2b$12$pTWZUH7ILOeuEz5qPq.HAOQn5lZ2eHWKX4BRP/GW/UPGDUHAf7fjG', 'LECTOR');
+INSERT INTO usuarios (nombre, email, password, rol) VALUES ('Maria Garcia', 'maria@email.com', '$2b$12$pTWZUH7ILOeuEz5qPq.HAOQn5lZ2eHWKX4BRP/GW/UPGDUHAf7fjG', 'LECTOR');
 
 INSERT INTO libros (titulo, autor, isbn, anio_publicacion, genero, numero_copias, copias_disponibles, editorial) VALUES ('Cien Anios de Soledad', 'Gabriel Garcia Marquez', '978-0307474728', 1967, 'Realismo Magico', 5, 5, 'Editorial Sudamericana');
 INSERT INTO libros (titulo, autor, isbn, anio_publicacion, genero, numero_copias, copias_disponibles, editorial) VALUES ('1984', 'George Orwell', '978-0451524935', 1949, 'Distopia', 3, 3, 'Secker and Warburg');
