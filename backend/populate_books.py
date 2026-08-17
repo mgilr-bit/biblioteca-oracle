@@ -2,14 +2,16 @@
 Script para poblar la base de datos con 500 libros
 """
 import random
-from config.database import db
-from faker import Faker
+
 import logging
+from sqlalchemy import func
+from sqlmodel import select
+
+from config.database import SessionLocal
+from models.libro import Libro
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-fake = Faker(['es_ES', 'es_MX'])
 
 # Listas de datos realistas para libros
 GENEROS = [
@@ -26,7 +28,6 @@ EDITORIALES = [
     'Crítica', 'Acantilado', 'Pre-Textos', 'Siruela', 'Alianza Editorial'
 ]
 
-# Títulos base para generar combinaciones únicas
 TITULOS_BASE = [
     'El secreto de', 'La historia de', 'Los misterios de', 'El jardín de',
     'La sombra de', 'El último', 'La venganza de', 'Los hijos de',
@@ -43,6 +44,18 @@ SUFIJOS = [
     'la luna', 'los ancestros', 'el tiempo', 'las cenizas',
     'la tormenta', 'los ríos', 'el sol', 'las olas',
     'la noche', 'los bosques', 'el fuego', 'las nubes'
+]
+
+NOMBRES = [
+    'Juan', 'María', 'Carlos', 'Lucía', 'Andrés', 'Sofía', 'Miguel',
+    'Valentina', 'José', 'Camila', 'Luis', 'Ana', 'Pedro', 'Isabella',
+    'Jorge', 'Carolina', 'Fernando', 'Daniela', 'Ricardo', 'Gabriela'
+]
+
+APELLIDOS = [
+    'García', 'Rodríguez', 'Martínez', 'López', 'González', 'Pérez',
+    'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera', 'Gómez',
+    'Díaz', 'Cruz', 'Morales', 'Vargas', 'Castillo', 'Rojas'
 ]
 
 def generar_isbn():
@@ -77,13 +90,13 @@ def generar_titulo():
     return f"{base} {sufijo}"
 
 def generar_autor():
-    """Generar nombre de autor realista"""
-    nombre = fake.first_name()
-    apellido1 = fake.last_name()
+    """Generar nombre de autor realista sin dependencias externas"""
+    nombre = random.choice(NOMBRES)
+    apellido1 = random.choice(APELLIDOS)
 
     # 50% de probabilidad de tener segundo apellido
     if random.random() < 0.5:
-        apellido2 = fake.last_name()
+        apellido2 = random.choice(APELLIDOS)
         return f"{nombre} {apellido1} {apellido2}"
 
     return f"{nombre} {apellido1}"
@@ -111,51 +124,56 @@ def crear_libro():
     }
 
 def poblar_libros(cantidad=500):
-    """Poblar la base de datos con libros"""
+    """Poblar la base de datos con libros usando el ORM"""
     logger.info(f"Iniciando población de {cantidad} libros...")
 
-    query = """
-        INSERT INTO libros (titulo, autor, isbn, anio_publicacion, genero, editorial, numero_copias, copias_disponibles)
-        VALUES (:titulo, :autor, :isbn, :anio_publicacion, :genero, :editorial, :numero_copias, :copias_disponibles)
-    """
-
-    libros_insertados = 0
+    session = SessionLocal()
+    insertados = 0
     errores = 0
 
-    for i in range(cantidad):
-        try:
-            libro = crear_libro()
-            db.execute_query(query, libro, fetch=False)
-            libros_insertados += 1
+    try:
+        for i in range(cantidad):
+            try:
+                session.add(Libro(**crear_libro()))
 
-            if (i + 1) % 50 == 0:
-                logger.info(f"Insertados {i + 1} libros...")
+                # Commit en lotes de 50
+                if (i + 1) % 50 == 0:
+                    session.commit()
+                    insertados = i + 1
+                    logger.info(f"Insertados {i + 1} libros...")
+            except Exception as e:
+                session.rollback()
+                errores += 1
+                logger.error(f"Error insertando libro {i + 1}: {str(e)}")
 
-        except Exception as e:
-            errores += 1
-            logger.error(f"Error insertando libro {i + 1}: {str(e)}")
-            continue
+        # Commit final
+        session.commit()
+        insertados = cantidad - errores
+    finally:
+        session.close()
 
-    logger.info(f"Proceso completado:")
-    logger.info(f"  - Libros insertados: {libros_insertados}")
+    logger.info("Proceso completado:")
+    logger.info(f"  - Libros insertados: {insertados}")
     logger.info(f"  - Errores: {errores}")
 
-    return libros_insertados, errores
+    return insertados, errores
 
 if __name__ == '__main__':
     try:
         # Verificar conexión a la base de datos
-        logger.info("Verificando conexión a la base de datos...")
-        test_query = "SELECT COUNT(*) as count FROM libros"
-        result = db.execute_query(test_query)
-        logger.info(f"Libros actuales en la base de datos: {result[0]['COUNT']}")
+        session = SessionLocal()
+        try:
+            total = session.execute(select(func.count(Libro.id_libro))).scalar_one()
+            logger.info(f"Libros actuales en la base de datos: {total}")
 
-        # Poblar con 500 libros
-        insertados, errores = poblar_libros(500)
+            # Poblar con 500 libros
+            insertados, errores = poblar_libros(500)
 
-        # Verificar total después de inserción
-        result = db.execute_query(test_query)
-        logger.info(f"Total de libros en la base de datos: {result[0]['COUNT']}")
+            # Verificar total después de inserción
+            total = session.execute(select(func.count(Libro.id_libro))).scalar_one()
+            logger.info(f"Total de libros en la base de datos: {total}")
+        finally:
+            session.close()
 
     except Exception as e:
         logger.error(f"Error fatal: {str(e)}")

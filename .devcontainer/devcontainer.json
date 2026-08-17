@@ -1,0 +1,36 @@
+{
+  "name": "Biblioteca Oracle - Dev",
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/biblioteca-oracle",
+  "runArgs": [
+    "--network",
+    "biblioteca-oracle_default"
+  ],
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "containerEnv": {
+    "DB_USER": "biblioteca_user",
+    "DB_PASSWORD": "BiblioPass123",
+    "DB_HOST": "db",
+    "DB_PORT": "1521",
+    "DB_SERVICE": "XEPDB1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.typeCheckingMode": "basic",
+        "files.eol": "\n"
+      }
+    }
+  }
+}

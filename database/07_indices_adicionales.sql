@@ -2,7 +2,9 @@
 -- Agregar índices adicionales para mejorar el rendimiento
 
 -- Índice en email de usuarios (usado en login)
-CREATE INDEX idx_usuarios_email ON usuarios(email);
+-- NOTA: la constraint UNIQUE en usuarios(email) ya crea un índice implícito,
+-- por lo que este índice sería redundante (ORA-01408).
+-- CREATE INDEX idx_usuarios_email ON usuarios(email);
 
 -- Índice compuesto para búsquedas de préstamos
 CREATE INDEX idx_prestamos_fecha_estado ON prestamos(fecha_devolucion_esperada, estado);

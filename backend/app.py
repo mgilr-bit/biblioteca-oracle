@@ -36,11 +36,16 @@ CORS(app, resources={
     }
 })
 
-# Importar rutas
-from routes.auth import auth_bp
-from routes.libros import libros_bp
-from routes.usuarios import usuarios_bp
-from routes.prestamos import prestamos_bp
+# Importar controllers
+from controllers.auth_controller import auth_bp
+from controllers.libro_controller import libros_bp
+from controllers.usuario_controller import usuarios_bp
+from controllers.prestamo_controller import prestamos_bp
+
+# Middleware global de autenticación JWT
+from utils.middleware import before_request_jwt
+
+app.before_request(before_request_jwt)
 
 # Registrar blueprints
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
@@ -65,8 +70,8 @@ def home():
 def health():
     """Endpoint para verificar el estado de la API"""
     try:
-        from config.database import db
-        db.get_connection().close()
+        from config.database import check_connection
+        check_connection()
         return jsonify({"status": "healthy", "database": "connected"})
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
