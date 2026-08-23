@@ -22,8 +22,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: biblioteca-redis
-    ports:
-      - "6379:6379"
+    # Sin `ports:` a propósito: el backend le habla por la red interna de
+    # Docker (host `redis`, puerto 6379 dentro del compose network), no
+    # necesita publicarse en el host — y publicarlo chocaría con cualquier
+    # otro Redis local en el 6379 (ej. de otro proyecto).
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
