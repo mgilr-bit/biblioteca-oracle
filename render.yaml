@@ -5,7 +5,7 @@ services:
     env: python
     region: oregon
     buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && gunicorn --bind 0.0.0.0:$PORT app:app"
+    startCommand: "cd backend && alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
@@ -21,10 +21,12 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
-      - key: FLASK_ENV
+      - key: ENV
         value: production
-      - key: FLASK_DEBUG
-        value: False
+      # Instancia de Redis administrada por Render (Key Value) o addon externo;
+      # pegar aquí la connection string que Render genera para ese servicio.
+      - key: REDIS_URL
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://biblioteca-frontend.onrender.com
 

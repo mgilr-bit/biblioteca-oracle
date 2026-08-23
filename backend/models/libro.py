@@ -2,14 +2,17 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import text
+from sqlalchemy import Column, Identity, Integer, text
 from sqlmodel import Field, SQLModel
 
 
 class Libro(SQLModel, table=True):
     __tablename__ = "libros"
 
-    id_libro: Optional[int] = Field(default=None, primary_key=True)
+    id_libro: Optional[int] = Field(
+        default=None,
+        sa_column=Column(Integer, Identity(always=True), primary_key=True),
+    )
     titulo: str = Field(min_length=1, max_length=200)
     autor: str = Field(min_length=1, max_length=150)
     isbn: Optional[str] = Field(default=None, max_length=20, unique=True)

@@ -1,5 +1,10 @@
-"""Servicios de gestión de libros."""
+"""Servicios de gestión de libros.
+
+Devuelven entidades SQLModel (o listas de ellas); el mapeo a DTO de
+respuesta lo hace el router vía `response_model`.
+"""
 import logging
+from typing import List
 
 from models.libro import Libro
 from repositories.libro_repository import LibroRepository
@@ -8,7 +13,6 @@ from services.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from utils.serializers import to_dict, to_list
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +24,7 @@ class LibroService:
     def __init__(self, session):
         self.libro_repo = LibroRepository(session)
 
-    def get_all(self, page, per_page, limit):
+    def get_all(self, page, per_page, limit) -> dict:
         page = max(page or 1, 1)
         per_page = min(max(per_page or PER_PAGE_DEFAULT, 1), MAX_RESULTADOS)
 
@@ -33,34 +37,34 @@ class LibroService:
 
         total = self.libro_repo.count()
         return {
-            "libros": to_list(libros),
+            "libros": libros,
             "page": page,
             "per_page": per_page,
             "total": total,
             "total_pages": (total + per_page - 1) // per_page,
         }
 
-    def get_all_for_export(self):
-        return to_list(self.libro_repo.get_ordered_by_titulo())
+    def get_all_for_export(self) -> List[Libro]:
+        return self.libro_repo.get_ordered_by_titulo()
 
-    def get_by_id(self, id_libro):
+    def get_by_id(self, id_libro: int) -> Libro:
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro:
             raise NotFoundError("Libro no encontrado")
-        return to_dict(libro)
+        return libro
 
-    def get_generos(self):
+    def get_generos(self) -> List[str]:
         return self.libro_repo.get_generos()
 
-    def search(self, titulo="", autor="", isbn="", genero="", limit=200):
+    def search(self, titulo="", autor="", isbn="", genero="", limit=200) -> List[Libro]:
         limit = min(max(limit or 200, 1), MAX_RESULTADOS)
         libros = self.libro_repo.search(
             titulo=titulo, autor=autor, isbn=isbn, genero=genero, limit=limit
         )
         logger.info(f"Búsqueda de libros: {len(libros)} resultados encontrados")
-        return to_list(libros)
+        return libros
 
-    def create(self, data):
+    def create(self, data: dict) -> dict:
         titulo = data.get("titulo")
         autor = data.get("autor")
         if not titulo or not autor:
@@ -81,7 +85,7 @@ class LibroService:
 
         return {"success": True, "message": "Libro creado exitosamente"}
 
-    def update(self, id_libro, data):
+    def update(self, id_libro: int, data: dict) -> dict:
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro:
             raise NotFoundError("Libro no encontrado")
@@ -116,7 +120,7 @@ class LibroService:
             "message": f"Libro actualizado exitosamente. Copias disponibles: {nuevas_disponibles}",
         }
 
-    def update_copias(self, id_libro, copias):
+    def update_copias(self, id_libro: int, copias) -> dict:
         if copias is None:
             raise ValidationError("copias_disponibles es requerido")
 
@@ -129,7 +133,7 @@ class LibroService:
 
         return {"success": True, "message": "Copias actualizadas exitosamente"}
 
-    def delete(self, id_libro):
+    def delete(self, id_libro: int) -> dict:
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro:
             raise NotFoundError("Libro no encontrado")
@@ -137,8 +141,8 @@ class LibroService:
         self.libro_repo.delete(libro)
         return {"success": True, "message": "Libro eliminado exitosamente"}
 
-    def get_bajo_stock(self):
-        return to_list(self.libro_repo.get_bajo_stock())
+    def get_bajo_stock(self) -> List[Libro]:
+        return self.libro_repo.get_bajo_stock()
 
-    def get_estadisticas(self):
+    def get_estadisticas(self) -> dict:
         return self.libro_repo.get_estadisticas()

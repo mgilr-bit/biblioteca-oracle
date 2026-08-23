@@ -1,9 +1,11 @@
 import { http } from './client'
 
 export const authAPI = {
-  login: (email, password) => http.post('/auth/login', { email, password }, { auth: false }),
+  login: (email, password) => http.post('/auth/login', { email, password }),
   register: (nombre, email, password, rol) =>
-    http.post('/auth/register', { nombre, email, password, rol }, { auth: false })
+    http.post('/auth/register', { nombre, email, password, rol }),
+  me: () => http.get('/auth/me'),
+  logout: () => http.post('/auth/logout')
 }
 
 export const librosAPI = {

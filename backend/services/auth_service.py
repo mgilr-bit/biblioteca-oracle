@@ -1,10 +1,12 @@
-"""Servicios de autenticación (login y registro)."""
+"""Servicios de autenticación (login y registro). La emisión de la sesión
+(cookies) queda a cargo del router: este servicio solo valida credenciales
+y devuelve la entidad de usuario."""
 import logging
 
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
 from services.exceptions import AuthError, ValidationError
-from utils.security import generate_token, hash_password, verify_password
+from utils.security import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ class AuthService:
     def __init__(self, session):
         self.usuario_repo = UsuarioRepository(session)
 
-    def login(self, email, password):
+    def login(self, email, password) -> Usuario:
         if not email or not password:
             raise ValidationError("Email y contraseña son requeridos")
 
@@ -26,20 +28,8 @@ class AuthService:
             logger.warning(f"Intento de login fallido para email: {email}")
             raise AuthError("Credenciales inválidas")
 
-        token = generate_token(usuario.id_usuario, usuario.email, usuario.rol)
         logger.info(f"Login exitoso para usuario: {email}")
-
-        return {
-            "success": True,
-            "token": token,
-            "user": {
-                "id": usuario.id_usuario,
-                "nombre": usuario.nombre,
-                "email": usuario.email,
-                "rol": usuario.rol,
-            },
-            "message": "Login exitoso",
-        }
+        return usuario
 
     def register(self, nombre, email, password):
         if not nombre or not email or not password:

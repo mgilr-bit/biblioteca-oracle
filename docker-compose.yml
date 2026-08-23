@@ -19,6 +19,18 @@ services:
     shm_size: 1g
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: biblioteca-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -32,13 +44,18 @@ services:
       SECRET_KEY: ${SECRET_KEY:-cambiar_esta_clave_en_produccion}
       ALLOWED_ORIGINS: http://localhost:5500,http://127.0.0.1:5500,http://localhost:5000,http://127.0.0.1:5000
       PORT: "5000"
-      FLASK_DEBUG: "True"
+      ENV: development
+      REDIS_URL: redis://redis:6379/0
+      SESSION_IDLE_TTL_SECONDS: "1800"
+      SESSION_ABSOLUTE_TTL_SECONDS: "604800"
     volumes:
       - ./backend:/app
     ports:
       - "5000:5000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 

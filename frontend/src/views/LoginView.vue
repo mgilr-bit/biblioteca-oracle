@@ -23,7 +23,7 @@ async function handleLogin() {
       loginForm.value.email,
       loginForm.value.password,
     );
-    auth.setSession({ ...data.user, token: data.token });
+    auth.setSession(data.user);
     router.push("/");
   } catch (error) {
     toast.error(error.message);

@@ -1,30 +1,54 @@
 import { defineStore } from 'pinia'
-import { getJSONCookie, setJSONCookie, removeCookie } from '../utils/cookies'
-
-const COOKIE_NAME = 'biblioteca_session'
+import { authAPI } from '../api'
+import { buildAbilityFor } from '../casl/ability'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    // Se inicializa leyendo la cookie una sola vez (equivalente a lo que
-    // antes hacía JSON.parse(localStorage.getItem('user')))
-    user: getJSONCookie(COOKIE_NAME)
+    // La sesión real vive en la cookie httpOnly `sid` (el backend la
+    // resuelve, JS no puede leerla). Este estado es solo para la UI y se
+    // pierde en cada recarga de página — por eso `initAuth()` la rehidrata
+    // llamando a GET /api/auth/me antes de montar el router (ver main.js).
+    user: null,
+    initialized: false
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.user?.token,
-    token: (state) => state.user?.token ?? null,
-    isBibliotecario: (state) => state.user?.rol === 'BIBLIOTECARIO',
-    nombre: (state) => state.user?.nombre ?? ''
+    isAuthenticated: (state) => !!state.user,
+    nombre: (state) => state.user?.nombre ?? '',
+    // Getters normales (no arrow) para poder encadenar `this.ability` —
+    // Pinia no expone otros getters a través del `state` que reciben las
+    // funciones flecha.
+    ability(state) {
+      return buildAbilityFor(state.user)
+    },
+    isBibliotecario() {
+      return this.ability.can('manage', 'all')
+    }
   },
 
   actions: {
     setSession(userData) {
       this.user = userData
-      setJSONCookie(COOKIE_NAME, userData)
     },
-    logout() {
+
+    async initAuth() {
+      try {
+        this.user = await authAPI.me()
+      } catch {
+        this.user = null
+      } finally {
+        this.initialized = true
+      }
+    },
+
+    async logout() {
+      try {
+        await authAPI.logout()
+      } catch {
+        // Si la sesión ya estaba vencida/revocada del lado del servidor,
+        // igual queremos limpiar el estado local.
+      }
       this.user = null
-      removeCookie(COOKIE_NAME)
     }
   }
 })

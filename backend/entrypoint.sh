@@ -30,6 +30,14 @@ then
     exit 1
 fi
 
+echo "==> [backend] Verificando estado de Alembic..."
+if python -m alembic current 2>/dev/null | grep -q "0001"; then
+    echo "==> [backend] Alembic ya al dia"
+else
+    echo "==> [backend] Primer arranque: alembic stamp head (el schema ya existe, creado por database/*.sql)"
+    python -m alembic stamp head
+fi
+
 echo "==> [backend] Verificando datos iniciales..."
 
 if python - <<'PY'
@@ -46,15 +54,15 @@ cur.execute("SELECT COUNT(*) FROM usuarios")
 sys.exit(0 if cur.fetchone()[0] == 0 else 1)
 PY
 then
-    echo "==> [backend] Cargando datos semilla (init_data.py)..."
-    python init_data.py
+    echo "==> [backend] Cargando datos semilla (seed.py)..."
+    python seed.py || echo "==> [backend] seed.py omitido (ver mensaje anterior)"
 else
-    echo "==> [backend] Datos ya presentes, omitiendo init_data.py"
+    echo "==> [backend] Datos ya presentes, omitiendo seed.py"
 fi
 
 echo "==> [backend] Iniciando servidor..."
-if [ "${FLASK_DEBUG:-False}" = "True" ] || [ "${FLASK_DEBUG:-false}" = "true" ]; then
+if [ "${ENV:-development}" = "development" ]; then
     echo "==> [backend] Modo desarrollo (hot-reload)"
-    exec flask --app app run --debug --host 0.0.0.0 --port "${PORT:-5000}"
+    exec uvicorn main:app --reload --host 0.0.0.0 --port "${PORT:-5000}"
 fi
-exec gunicorn --bind 0.0.0.0:"${PORT:-5000}" app:app
+exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:"${PORT:-5000}" main:app

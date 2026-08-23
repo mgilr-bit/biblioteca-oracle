@@ -1,5 +1,11 @@
-"""Servicios de gestión de usuarios."""
+"""Servicios de gestión de usuarios.
+
+Devuelven entidades SQLModel (o listas de ellas); el mapeo a DTO de
+respuesta (`schemas.usuario.UsuarioResponse`, que nunca incluye el
+password) lo hace el router vía `response_model`.
+"""
 import logging
+from typing import List
 
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
@@ -9,28 +15,26 @@ from services.exceptions import (
     ValidationError,
 )
 from utils.security import hash_password
-from utils.serializers import to_dict, to_list
 
 logger = logging.getLogger(__name__)
 
 ROLES_VALIDOS = ("LECTOR", "BIBLIOTECARIO")
-CAMPOS_SENSIBLES = {"password"}
 
 
 class UsuarioService:
     def __init__(self, session):
         self.usuario_repo = UsuarioRepository(session)
 
-    def get_all(self):
-        return to_list(self.usuario_repo.get_all(), exclude=CAMPOS_SENSIBLES)
+    def get_all(self) -> List[Usuario]:
+        return self.usuario_repo.get_all()
 
-    def get_by_id(self, id_usuario):
+    def get_by_id(self, id_usuario: int) -> Usuario:
         usuario = self.usuario_repo.get_by_id(id_usuario)
         if not usuario:
             raise NotFoundError("Usuario no encontrado")
-        return to_dict(usuario, exclude=CAMPOS_SENSIBLES)
+        return usuario
 
-    def update(self, id_usuario, data):
+    def update(self, id_usuario: int, data: dict, requesting_user) -> dict:
         usuario = self.usuario_repo.get_by_id(id_usuario)
         if not usuario:
             raise NotFoundError("Usuario no encontrado")
@@ -41,6 +45,11 @@ class UsuarioService:
         if not nombre or not email or not rol:
             raise ValidationError("Nombre, email y rol son requeridos")
 
+        # SEGURIDAD: solo BIBLIOTECARIO puede cambiar el rol de un usuario;
+        # un LECTOR editando su propio perfil no puede auto-promoverse.
+        if requesting_user.rol != "BIBLIOTECARIO":
+            rol = usuario.rol
+
         usuario.nombre = nombre
         usuario.email = email
         usuario.rol = rol
@@ -48,7 +57,7 @@ class UsuarioService:
 
         return {"success": True, "message": "Usuario actualizado exitosamente"}
 
-    def delete(self, id_usuario):
+    def delete(self, id_usuario: int) -> dict:
         if self.usuario_repo.count_active_prestamos(id_usuario) > 0:
             raise BusinessRuleError(
                 "No se puede eliminar el usuario. Tiene préstamos activos."
@@ -62,7 +71,7 @@ class UsuarioService:
         logger.info(f"Usuario {id_usuario} eliminado permanentemente")
         return {"success": True, "message": "Usuario eliminado permanentemente"}
 
-    def create_admin(self, data):
+    def create_admin(self, data: dict) -> dict:
         nombre = data.get("nombre")
         email = data.get("email")
         password = data.get("password")
@@ -92,7 +101,7 @@ class UsuarioService:
         logger.info(f"Nuevo usuario creado por admin: {email} con rol {rol}")
         return {"success": True, "message": f"Usuario creado exitosamente como {rol}"}
 
-    def toggle_estado(self, id_usuario, activo):
+    def toggle_estado(self, id_usuario: int, activo) -> dict:
         if activo not in ("S", "N"):
             raise ValidationError("Estado inválido. Debe ser 'S' o 'N'")
 

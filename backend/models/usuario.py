@@ -2,14 +2,17 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import text
+from sqlalchemy import Column, Identity, Integer, text
 from sqlmodel import Field, SQLModel
 
 
 class Usuario(SQLModel, table=True):
     __tablename__ = "usuarios"
 
-    id_usuario: Optional[int] = Field(default=None, primary_key=True)
+    id_usuario: Optional[int] = Field(
+        default=None,
+        sa_column=Column(Integer, Identity(always=True), primary_key=True),
+    )
     nombre: str = Field(min_length=1, max_length=100)
     email: str = Field(max_length=100, unique=True, index=True)
     password: str = Field(max_length=255)
