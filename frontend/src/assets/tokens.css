@@ -1,0 +1,108 @@
+/* ============================================================
+   Sistema de diseño — Biblioteca
+   Dirección: "ficha de catálogo" — la estética de una biblioteca
+   de archivo real: papel claro, tinta de ledger azul-marino,
+   sellos de fecha para estados, códigos en monoespaciada como
+   números de catálogo. Minimalista, sin sombras pesadas, bordes
+   finos, mucho aire.
+   ============================================================ */
+
+:root {
+  /* --- Paleta (clara) --- */
+  --bg: #faf9f6;              /* papel */
+  --surface: #ffffff;
+  --surface-alt: #f2f0ea;     /* panel sutil, ficha */
+  --ink: #201f24;             /* tinta principal */
+  --ink-muted: #6d6a61;       /* tinta secundaria, cálida */
+  --ink-faint: #b5b0a3;
+  --border: #e5e1d6;          /* hairline cálido */
+  --border-strong: #d4cfc0;
+
+  --accent: #2c3e58;          /* tinta de ledger, azul-marino */
+  --accent-hover: #1f2c40;
+  --accent-soft: #e9edf3;
+
+  --success: #4f7859;
+  --success-bg: #eaf2ec;
+  --success-border: #cfe1d5;
+
+  --warning: #96650f;
+  --warning-bg: #fbf1de;
+  --warning-border: #efd9a8;
+
+  --danger: #a63a3a;
+  --danger-bg: #fbeaea;
+  --danger-border: #edc9c9;
+
+  --info: #3e6e8e;
+  --info-bg: #eaf2f6;
+  --info-border: #c9dde8;
+
+  /* --- Tipografía --- */
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
+
+  /* --- Espaciado --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  /* --- Radio y sombra: discretos, ledger no-SaaS --- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --shadow-card: 0 1px 2px rgba(32, 31, 36, 0.04);
+  --shadow-pop: 0 8px 24px rgba(32, 31, 36, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: 1.9rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.15rem; }
+
+a { color: var(--accent); }
+
+code, .mono {
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
