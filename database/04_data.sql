@@ -1,14 +1,14 @@
 -- 04_data.sql
 SET DEFINE OFF;
 
-INSERT INTO usuarios (nombre, email, password, rol) 
-VALUES ('Admin Biblioteca', 'admin@biblioteca.com', 'admin123', 'BIBLIOTECARIO');
+INSERT INTO usuarios (nombre, email, password, rol)
+VALUES ('Admin Biblioteca', 'admin@biblioteca.com', '$2b$12$f9OHyufcs1NHqsiPvJirVeMO0NAsIE8KeHFjJL6vwrK0YazSp77la', 'BIBLIOTECARIO');
 
-INSERT INTO usuarios (nombre, email, password, rol) 
-VALUES ('Juan Pérez', 'juan@email.com', 'lector123', 'LECTOR');
+INSERT INTO usuarios (nombre, email, password, rol)
+VALUES ('Juan Pérez', 'juan@email.com', '$2b$12$pTWZUH7ILOeuEz5qPq.HAOQn5lZ2eHWKX4BRP/GW/UPGDUHAf7fjG', 'LECTOR');
 
-INSERT INTO usuarios (nombre, email, password, rol) 
-VALUES ('María García', 'maria@email.com', 'lector123', 'LECTOR');
+INSERT INTO usuarios (nombre, email, password, rol)
+VALUES ('María García', 'maria@email.com', '$2b$12$pTWZUH7ILOeuEz5qPq.HAOQn5lZ2eHWKX4BRP/GW/UPGDUHAf7fjG', 'LECTOR');
 
 INSERT INTO libros (titulo, autor, isbn, anio_publicacion, genero, numero_copias, copias_disponibles, editorial)
 VALUES ('Cien Años de Soledad', 'Gabriel García Márquez', '978-0307474728', 1967, 'Realismo Mágico', 5, 5, 'Editorial Sudamericana');
