@@ -14,11 +14,16 @@ class UsuarioRepository(BaseRepository[Usuario]):
         super().__init__(session, Usuario)
 
     def get_by_email(self, email: str) -> Optional[Usuario]:
+        """Sin filtrar is_deleted a propósito: se usa tanto para login como
+        para chequear duplicados al registrar/crear, y en ambos casos hay
+        que ver también las cuentas borradas (no permitir re-registrar ese
+        email, y que el login de una cuenta borrada falle explícitamente
+        en vez de simplemente "no encontrada")."""
         stmt = select(Usuario).where(Usuario.email == email)
         return self.session.exec(stmt).first()
 
     def get_all(self) -> List[Usuario]:
-        stmt = select(Usuario).order_by(Usuario.nombre)
+        stmt = select(Usuario).where(Usuario.is_deleted == False).order_by(Usuario.nombre)  # noqa: E712
         return list(self.session.exec(stmt))
 
     def count_active_prestamos(self, id_usuario: int) -> int:

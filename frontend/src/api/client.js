@@ -1,5 +1,6 @@
 import { useAuthStore } from '../stores/auth'
 import router from '../router'
+import { getCookie } from '../utils/cookies'
 
 // CORRECCIÓN vs. versión original: la URL ya no está hardcodeada ni
 // duplicada en varios archivos (estaba repetida en api.js y en
@@ -7,17 +8,24 @@ import router from '../router'
 // entorno, configurable por despliegue sin tocar código.
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
-function authHeaders(extra = {}) {
-  const auth = useAuthStore()
-  const headers = { 'Content-Type': 'application/json', ...extra }
-  if (auth.token) headers.Authorization = `Bearer ${auth.token}`
-  return headers
+// La sesión ahora es una cookie httpOnly (`sid`) que el navegador maneja
+// solo — por eso `credentials: 'include'` en cada fetch. Ya no existe un
+// token que adjuntar a mano.
+function jsonHeaders(extra = {}) {
+  return { 'Content-Type': 'application/json', ...extra }
+}
+
+// CSRF de doble-envío: el backend lee esta cookie (no-httpOnly a propósito)
+// y la compara contra el header en cada mutación.
+function csrfHeader() {
+  const token = getCookie('XSRF-TOKEN')
+  return token ? { 'X-XSRF-TOKEN': token } : {}
 }
 
 async function handle(response) {
   if (response.status === 401) {
     const auth = useAuthStore()
-    auth.logout()
+    auth.user = null
     router.push('/login')
     throw new Error('Sesión expirada')
   }
@@ -34,36 +42,43 @@ async function handle(response) {
 }
 
 export const http = {
-  get: (path, { auth = true } = {}) =>
-    fetch(`${API_URL}${path}`, { headers: auth ? authHeaders() : {} }).then(handle),
+  get: (path) =>
+    fetch(`${API_URL}${path}`, { credentials: 'include' }).then(handle),
 
-  post: (path, body, { auth = true } = {}) =>
+  post: (path, body) =>
     fetch(`${API_URL}${path}`, {
       method: 'POST',
-      headers: auth ? authHeaders() : { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      headers: jsonHeaders(csrfHeader()),
       body: JSON.stringify(body)
     }).then(handle),
 
   put: (path, body) =>
     fetch(`${API_URL}${path}`, {
       method: 'PUT',
-      headers: authHeaders(),
+      credentials: 'include',
+      headers: jsonHeaders(csrfHeader()),
       body: JSON.stringify(body)
     }).then(handle),
 
   patch: (path, body) =>
     fetch(`${API_URL}${path}`, {
       method: 'PATCH',
-      headers: authHeaders(),
+      credentials: 'include',
+      headers: jsonHeaders(csrfHeader()),
       body: JSON.stringify(body)
     }).then(handle),
 
   delete: (path) =>
-    fetch(`${API_URL}${path}`, { method: 'DELETE', headers: authHeaders() }).then(handle),
+    fetch(`${API_URL}${path}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: csrfHeader()
+    }).then(handle),
 
   // Para descargas binarias (ej. export CSV) que necesitan el blob crudo
   getBlob: async (path) => {
-    const response = await fetch(`${API_URL}${path}`, { headers: authHeaders() })
+    const response = await fetch(`${API_URL}${path}`, { credentials: 'include' })
     if (!response.ok) throw new Error('Error al exportar')
     return response.blob()
   }

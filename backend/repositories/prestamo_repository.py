@@ -18,6 +18,7 @@ class PrestamoRepository(BaseRepository[Prestamo]):
             select(Prestamo, Libro.titulo, Libro.autor, Usuario.nombre)
             .join(Libro, Prestamo.id_libro == Libro.id_libro)
             .join(Usuario, Prestamo.id_usuario == Usuario.id_usuario)
+            .where(Prestamo.is_deleted == False)  # noqa: E712
         )
 
     def get_all_with_details(self) -> list:

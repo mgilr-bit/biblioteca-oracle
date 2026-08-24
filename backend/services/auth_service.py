@@ -1,10 +1,13 @@
-"""Servicios de autenticación (login y registro)."""
+"""Servicios de autenticación (login y registro). La emisión de la sesión
+(cookies) queda a cargo del router: este servicio solo valida credenciales
+y devuelve la entidad de usuario."""
 import logging
 
+from core.messages import AuthMessages, UsuarioMessages
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
 from services.exceptions import AuthError, ValidationError
-from utils.security import generate_token, hash_password, verify_password
+from utils.security import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -13,43 +16,38 @@ class AuthService:
     def __init__(self, session):
         self.usuario_repo = UsuarioRepository(session)
 
-    def login(self, email, password):
+    def login(self, email, password) -> Usuario:
         if not email or not password:
-            raise ValidationError("Email y contraseña son requeridos")
+            raise ValidationError(AuthMessages.EMAIL_PASSWORD_REQUERIDOS)
 
         usuario = self.usuario_repo.get_by_email(email)
         if (
             not usuario
+            or usuario.is_deleted
             or usuario.activo != "S"
             or not verify_password(password, usuario.password)
         ):
             logger.warning(f"Intento de login fallido para email: {email}")
-            raise AuthError("Credenciales inválidas")
+            raise AuthError(AuthMessages.CREDENCIALES_INVALIDAS)
 
-        token = generate_token(usuario.id_usuario, usuario.email, usuario.rol)
         logger.info(f"Login exitoso para usuario: {email}")
-
-        return {
-            "success": True,
-            "token": token,
-            "user": {
-                "id": usuario.id_usuario,
-                "nombre": usuario.nombre,
-                "email": usuario.email,
-                "rol": usuario.rol,
-            },
-            "message": "Login exitoso",
-        }
+        return usuario
 
     def register(self, nombre, email, password):
         if not nombre or not email or not password:
-            raise ValidationError("Nombre, email y contraseña son requeridos")
-        if len(password) < 6:
-            raise ValidationError("La contraseña debe tener al menos 6 caracteres")
+            raise ValidationError(UsuarioMessages.REGISTRO_CAMPOS_REQUERIDOS)
+        if len(password) < 8:
+            # NIST SP 800-63B 5.1.1.2: mínimo 8 caracteres, sin reglas de
+            # complejidad forzada.
+            raise ValidationError(UsuarioMessages.PASSWORD_MUY_CORTA)
+        if len(password.encode("utf-8")) > 72:
+            # bcrypt trunca silenciosamente a 72 bytes; mejor rechazar
+            # explícito que aceptar una contraseña cuya cola nunca se valida.
+            raise ValidationError(UsuarioMessages.PASSWORD_MUY_LARGA)
 
         if self.usuario_repo.get_by_email(email):
             logger.warning(f"Intento de registro con email duplicado: {email}")
-            raise ValidationError("El email ya está registrado")
+            raise ValidationError(UsuarioMessages.EMAIL_DUPLICADO)
 
         # SEGURIDAD: el rol siempre es LECTOR (se ignora cualquier rol enviado)
         usuario = Usuario(
@@ -58,7 +56,7 @@ class AuthService:
             password=hash_password(password),
             rol="LECTOR",
         )
-        self.usuario_repo.add(usuario)
+        self.usuario_repo.add(usuario, actor=email)
 
         logger.info(f"Nuevo usuario registrado: {email}")
         return {"success": True, "message": "Usuario registrado exitosamente"}

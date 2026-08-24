@@ -1,10 +1,17 @@
 """
-Script para inicializar datos en la base de datos con contraseñas hasheadas
-Ejecutar con: python init_data.py
+Script para sembrar datos de demo (usuarios + libros) con contraseñas hasheadas.
+Ejecutar con: python seed.py
+
+Reemplaza a init_data.py. Solo se ejecuta si la tabla `usuarios` está
+vacía (ver entrypoint.sh); nunca corre contra producción, para no borrar
+datos reales por accidente si esa tabla llegara a quedar vacía ahí.
 """
+import sys
+
 from sqlalchemy import delete, text
 
 from config.database import SessionLocal
+from core.config import settings
 from models.libro import Libro
 from models.prestamo import Prestamo
 from models.usuario import Usuario
@@ -30,8 +37,7 @@ LIBROS = [
 ]
 
 
-def init_usuarios(session):
-    """Insertar usuarios iniciales con contraseñas hasheadas"""
+def seed_usuarios(session):
     for nombre, email, password, rol in USUARIOS:
         session.add(
             Usuario(
@@ -39,15 +45,14 @@ def init_usuarios(session):
                 email=email,
                 password=hash_password(password),
                 rol=rol,
+                created_by="system",
             )
         )
-        print(f"  ✓ Usuario creado: {email} (contraseña hasheada)")
+        print(f"  - Usuario creado: {email} (contraseña hasheada)")
+    print(f"Total: {len(USUARIOS)} usuarios insertados")
 
-    print(f"\n✓ Total: {len(USUARIOS)} usuarios insertados")
 
-
-def init_libros(session):
-    """Insertar libros iniciales"""
+def seed_libros(session):
     for titulo, autor, isbn, anio, genero, copias, editorial in LIBROS:
         session.add(
             Libro(
@@ -59,35 +64,35 @@ def init_libros(session):
                 numero_copias=copias,
                 copias_disponibles=copias,
                 editorial=editorial,
+                created_by="system",
             )
         )
-
-    print(f"✓ {len(LIBROS)} libros insertados")
+    print(f"{len(LIBROS)} libros insertados")
 
 
 def main():
-    """Función principal"""
-    print("=== Iniciando inserción de datos ===\n")
+    if settings.is_production:
+        print("ENV=production: seed.py no se ejecuta (protección contra reseed accidental).")
+        sys.exit(1)
 
+    print("=== Sembrando datos de demo ===")
     session = SessionLocal()
     try:
-        # Verificar conexión
         session.execute(text("SELECT 1 FROM DUAL"))
-        print("✓ Conexión a la base de datos exitosa\n")
+        print("Conexión a la base de datos OK")
 
-        # Limpiar tablas (en orden por las claves foráneas)
         session.execute(delete(Prestamo))
         session.execute(delete(Libro))
         session.execute(delete(Usuario))
 
-        init_usuarios(session)
-        init_libros(session)
+        seed_usuarios(session)
+        seed_libros(session)
         session.commit()
-
-        print("\n=== Datos inicializados correctamente ===")
-    except Exception as e:
+        print("=== Datos sembrados correctamente ===")
+    except Exception as error:
         session.rollback()
-        print(f"\n✗ Error: {e}")
+        print(f"Error: {error}")
+        sys.exit(1)
     finally:
         session.close()
 

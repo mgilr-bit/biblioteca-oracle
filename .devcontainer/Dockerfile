@@ -11,7 +11,14 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# uv gestiona las dependencias del backend (pyproject.toml/uv.lock); se
+# instalan en el Python del sistema (--system) para que el devcontainer
+# siga funcionando "listo para usar" sin activar un venv por proyecto.
+RUN pip install --no-cache-dir uv
+
+COPY backend/pyproject.toml backend/uv.lock /tmp/backend/
+RUN cd /tmp/backend \
+    && uv export --frozen --no-hashes -o requirements.lock.txt \
+    && uv pip install --system -r requirements.lock.txt
 
 ENV SHELL=/bin/bash

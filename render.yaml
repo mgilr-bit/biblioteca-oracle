@@ -4,11 +4,11 @@ services:
     name: biblioteca-api
     env: python
     region: oregon
-    buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && gunicorn --bind 0.0.0.0:$PORT app:app"
+    buildCommand: "cd backend && pip install uv && uv sync --frozen"
+    startCommand: "cd backend && uv run alembic upgrade head && uv run gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.12.7
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
@@ -21,10 +21,12 @@ services:
         sync: false
       - key: SECRET_KEY
         generateValue: true
-      - key: FLASK_ENV
+      - key: ENV
         value: production
-      - key: FLASK_DEBUG
-        value: False
+      # Instancia de Redis administrada por Render (Key Value) o addon externo;
+      # pegar aquí la connection string que Render genera para ese servicio.
+      - key: REDIS_URL
+        sync: false
       - key: ALLOWED_ORIGINS
         value: https://biblioteca-frontend.onrender.com
 

@@ -1,0 +1,50 @@
+"""Mensajes de error centralizados (mirror de VALIDATION_ERRORS en wallet-api).
+
+Un único lugar para el texto de cada error de negocio/autorización: evita
+strings repetidos e inconsistentes desperdigados por services, routers y
+dependencies, y es el punto donde traducir o auditar lo que ve el cliente.
+"""
+
+
+class AuthMessages:
+    CREDENCIALES_INVALIDAS = "Credenciales inválidas"
+    TOKEN_REQUERIDO = "Token requerido"
+    SESION_EXPIRADA = "Sesión expirada"
+    SESION_REVOCADA = "Sesión revocada"
+    DEMASIADOS_INTENTOS = "Demasiados intentos fallidos, intente de nuevo más tarde"
+    SIN_PERMISOS = "No tiene permisos para realizar esta acción"
+    CSRF_INVALIDO = "CSRF token inválido"
+    NO_ENCONTRADO = "No encontrado"
+    EMAIL_PASSWORD_REQUERIDOS = "Email y contraseña son requeridos"
+
+
+class UsuarioMessages:
+    NOT_FOUND = "Usuario no encontrado"
+    REGISTRO_CAMPOS_REQUERIDOS = "Nombre, email y contraseña son requeridos"
+    ADMIN_CAMPOS_REQUERIDOS = "Nombre, email, contraseña y rol son requeridos"
+    UPDATE_CAMPOS_REQUERIDOS = "Nombre, email y rol son requeridos"
+    EMAIL_DUPLICADO = "El email ya está registrado"
+    ROL_INVALIDO = "Rol inválido. Debe ser LECTOR o BIBLIOTECARIO"
+    PASSWORD_MUY_CORTA = "La contraseña debe tener al menos 8 caracteres"
+    PASSWORD_MUY_LARGA = "La contraseña no puede superar los 72 caracteres"
+    ESTADO_INVALIDO = "Estado inválido. Debe ser 'S' o 'N'"
+    TIENE_PRESTAMOS_ACTIVOS = "No se puede eliminar el usuario. Tiene préstamos activos."
+
+
+class LibroMessages:
+    NOT_FOUND = "Libro no encontrado"
+    CAMPOS_REQUERIDOS = "Los campos titulo y autor son requeridos"
+    COPIAS_REQUERIDO = "copias_disponibles es requerido"
+
+
+class PrestamoMessages:
+    NOT_FOUND = "Préstamo no encontrado"
+    YA_DEVUELTO = "El préstamo ya fue devuelto"
+    CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
+    SIN_COPIAS = "No hay copias disponibles"
+
+
+class GenericMessages:
+    ERROR_INTERNO = "Error interno del servidor"
+    CUERPO_INVALIDO = "Cuerpo de la solicitud inválido"
+    PAYLOAD_MUY_GRANDE = "El cuerpo de la solicitud supera el tamaño máximo permitido"

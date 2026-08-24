@@ -13,16 +13,17 @@ class LibroRepository(BaseRepository[Libro]):
         super().__init__(session, Libro)
 
     def count(self) -> int:
-        stmt = select(func.count(Libro.id_libro))
+        stmt = select(func.count(Libro.id_libro)).where(Libro.is_deleted == False)  # noqa: E712
         return self.session.execute(stmt).scalar_one()
 
     def get_ordered_by_titulo(self) -> List[Libro]:
-        stmt = select(Libro).order_by(Libro.titulo)
+        stmt = select(Libro).where(Libro.is_deleted == False).order_by(Libro.titulo)  # noqa: E712
         return list(self.session.exec(stmt))
 
     def get_paginated(self, offset: int, per_page: int) -> List[Libro]:
         stmt = (
             select(Libro)
+            .where(Libro.is_deleted == False)  # noqa: E712
             .order_by(Libro.titulo)
             .offset(offset)
             .limit(per_page)
@@ -30,7 +31,7 @@ class LibroRepository(BaseRepository[Libro]):
         return list(self.session.exec(stmt))
 
     def get_first_n(self, limit: int) -> List[Libro]:
-        stmt = select(Libro).order_by(Libro.titulo).limit(limit)
+        stmt = select(Libro).where(Libro.is_deleted == False).order_by(Libro.titulo).limit(limit)  # noqa: E712
         return list(self.session.exec(stmt))
 
     def search(
@@ -42,7 +43,7 @@ class LibroRepository(BaseRepository[Libro]):
         genero: str = "",
         limit: int = 200,
     ) -> List[Libro]:
-        conditions = []
+        conditions = [Libro.is_deleted == False]  # noqa: E712
         if titulo:
             conditions.append(func.upper(Libro.titulo).like(f"%{titulo.upper()}%"))
         if autor:
@@ -52,15 +53,13 @@ class LibroRepository(BaseRepository[Libro]):
         if genero:
             conditions.append(func.upper(Libro.genero).like(f"%{genero.upper()}%"))
 
-        stmt = select(Libro).order_by(Libro.titulo).limit(limit)
-        if conditions:
-            stmt = stmt.where(*conditions)
+        stmt = select(Libro).where(*conditions).order_by(Libro.titulo).limit(limit)
         return list(self.session.exec(stmt))
 
     def get_generos(self) -> List[str]:
         stmt = (
             select(Libro.genero)
-            .where(Libro.genero.is_not(None))
+            .where(Libro.is_deleted == False, Libro.genero.is_not(None))  # noqa: E712
             .distinct()
             .order_by(Libro.genero)
         )
@@ -69,7 +68,7 @@ class LibroRepository(BaseRepository[Libro]):
     def get_bajo_stock(self) -> List[Libro]:
         stmt = (
             select(Libro)
-            .where(Libro.copias_disponibles < 2)
+            .where(Libro.is_deleted == False, Libro.copias_disponibles < 2)  # noqa: E712
             .order_by(Libro.copias_disponibles)
         )
         return list(self.session.exec(stmt))
@@ -88,6 +87,6 @@ class LibroRepository(BaseRepository[Libro]):
                 ),
                 0,
             ).label("bajo_stock"),
-        )
+        ).where(Libro.is_deleted == False)  # noqa: E712
         row = self.session.execute(stmt).one()
         return dict(row._mapping)
