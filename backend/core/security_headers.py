@@ -20,8 +20,10 @@ _DOCS_PATHS = {"/docs", "/redoc", "/docs/oauth2-redirect"}
 _DOCS_CSP = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
     "img-src 'self' data: https://fastapi.tiangolo.com; "
+    "worker-src 'self' blob:; "
     "connect-src 'self'"
 )
 

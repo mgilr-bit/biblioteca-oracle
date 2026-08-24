@@ -6,6 +6,7 @@ from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -37,7 +38,16 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="API Sistema de Gestión de Biblioteca", version="2.0", lifespan=lifespan)
+app = FastAPI(
+    title="API Sistema de Gestión de Biblioteca",
+    version="2.0",
+    lifespan=lifespan,
+    # El HTML de /redoc que trae FastAPI por defecto apunta a
+    # cdn.jsdelivr.net/npm/redoc@next/... — ese dist-tag "next" está roto
+    # (404) en jsdelivr ahora mismo. Se desactiva la ruta automática y se
+    # registra una propia más abajo con una versión fija que sí existe.
+    redoc_url=None,
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -74,6 +84,15 @@ async def service_error_handler(request: Request, exc: ServiceError):
 async def unhandled_error_handler(request: Request, exc: Exception):
     logger.exception(f"Error no controlado en {request.url.path}: {exc}")
     return JSONResponse(status_code=500, content={"error": "Error interno del servidor"})
+
+
+@app.get("/redoc", include_in_schema=False)
+def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - ReDoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2/bundles/redoc.standalone.js",
+    )
 
 
 app.include_router(auth_router, prefix="/api/auth")
