@@ -72,4 +72,4 @@ def devolver_prestamo(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Prestamo", "devolver")),
 ):
-    return PrestamoService(session).devolver(id_prestamo)
+    return PrestamoService(session).devolver(id_prestamo, actor=user.email)

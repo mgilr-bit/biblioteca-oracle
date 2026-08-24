@@ -1,8 +1,8 @@
 """DTOs del recurso Usuario (nunca incluyen el hash de password)."""
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UsuarioResponse(BaseModel):
@@ -17,17 +17,17 @@ class UsuarioResponse(BaseModel):
 
 
 class UsuarioAdminCreate(BaseModel):
-    nombre: str
-    email: str
-    password: str
-    rol: str
+    nombre: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)
+    rol: Literal["LECTOR", "BIBLIOTECARIO"]
 
 
 class UsuarioUpdate(BaseModel):
-    nombre: str
-    email: str
-    rol: str
+    nombre: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    rol: Literal["LECTOR", "BIBLIOTECARIO"]
 
 
 class UsuarioEstadoUpdate(BaseModel):
-    activo: str
+    activo: Literal["S", "N"]

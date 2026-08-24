@@ -120,7 +120,7 @@ def create_libro(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Libro", "create")),
 ):
-    return LibroService(session).create(body.model_dump())
+    return LibroService(session).create(body.model_dump(), actor=user.email)
 
 
 @router.get("/{id_libro}", response_model=LibroResponse)
@@ -131,14 +131,14 @@ def get_libro(id_libro: int, request: Request, session: Session = Depends(get_db
 
 @router.put("/{id_libro}", response_model=MessageResponse)
 def update_libro(id_libro: int, body: LibroUpdate, session: Session = Depends(get_db_session), user=Depends(WRITE)):
-    return LibroService(session).update(id_libro, body.model_dump())
+    return LibroService(session).update(id_libro, body.model_dump(), actor=user.email)
 
 
 @router.patch("/{id_libro}/copias", response_model=MessageResponse)
 def update_copias(
     id_libro: int, body: LibroCopiasUpdate, session: Session = Depends(get_db_session), user=Depends(WRITE)
 ):
-    return LibroService(session).update_copias(id_libro, body.copias_disponibles)
+    return LibroService(session).update_copias(id_libro, body.copias_disponibles, actor=user.email)
 
 
 @router.delete("/{id_libro}", response_model=MessageResponse)
@@ -147,4 +147,4 @@ def delete_libro(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Libro", "delete")),
 ):
-    return LibroService(session).delete(id_libro)
+    return LibroService(session).delete(id_libro, actor=user.email)

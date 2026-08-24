@@ -6,6 +6,7 @@ respuesta lo hace el router vía `response_model`.
 import logging
 from typing import List
 
+from core.messages import LibroMessages
 from models.libro import Libro
 from repositories.libro_repository import LibroRepository
 from services.base import BaseService
@@ -18,7 +19,7 @@ PER_PAGE_DEFAULT = 100
 
 
 class LibroService(BaseService[Libro]):
-    not_found_message = "Libro no encontrado"
+    not_found_message = LibroMessages.NOT_FOUND
 
     def __init__(self, session):
         super().__init__(LibroRepository(session))
@@ -57,11 +58,11 @@ class LibroService(BaseService[Libro]):
         logger.info(f"Búsqueda de libros: {len(libros)} resultados encontrados")
         return libros
 
-    def create(self, data: dict) -> dict:
+    def create(self, data: dict, actor: str) -> dict:
         titulo = data.get("titulo")
         autor = data.get("autor")
         if not titulo or not autor:
-            raise ValidationError("Los campos titulo y autor son requeridos")
+            raise ValidationError(LibroMessages.CAMPOS_REQUERIDOS)
 
         numero_copias = int(data.get("numero_copias", 1) or 1)
         libro = Libro(
@@ -74,17 +75,17 @@ class LibroService(BaseService[Libro]):
             copias_disponibles=numero_copias,
             editorial=data.get("editorial"),
         )
-        self.repository.add(libro)
+        self.repository.add(libro, actor=actor)
 
         return {"success": True, "message": "Libro creado exitosamente"}
 
-    def update(self, id_libro: int, data: dict) -> dict:
+    def update(self, id_libro: int, data: dict, actor: str) -> dict:
         libro = self.get_by_id(id_libro)
 
         titulo = data.get("titulo")
         autor = data.get("autor")
         if not titulo or not autor:
-            raise ValidationError("Los campos titulo y autor son requeridos")
+            raise ValidationError(LibroMessages.CAMPOS_REQUERIDOS)
 
         nuevas_copias = int(data.get("numero_copias", libro.numero_copias) or libro.numero_copias)
         diferencia = nuevas_copias - libro.numero_copias
@@ -104,6 +105,7 @@ class LibroService(BaseService[Libro]):
         libro.numero_copias = nuevas_copias
         libro.copias_disponibles = nuevas_disponibles
         libro.editorial = data.get("editorial")
+        self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()
 
         return {
@@ -111,18 +113,19 @@ class LibroService(BaseService[Libro]):
             "message": f"Libro actualizado exitosamente. Copias disponibles: {nuevas_disponibles}",
         }
 
-    def update_copias(self, id_libro: int, copias) -> dict:
+    def update_copias(self, id_libro: int, copias, actor: str) -> dict:
         if copias is None:
-            raise ValidationError("copias_disponibles es requerido")
+            raise ValidationError(LibroMessages.COPIAS_REQUERIDO)
 
         libro = self.get_by_id(id_libro)
         libro.copias_disponibles = int(copias)
+        self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()
 
         return {"success": True, "message": "Copias actualizadas exitosamente"}
 
-    def delete(self, id_libro: int) -> dict:
-        self.delete_entity(id_libro)
+    def delete(self, id_libro: int, actor: str) -> dict:
+        self.delete_entity(id_libro, actor=actor)
         return {"success": True, "message": "Libro eliminado exitosamente"}
 
     def get_bajo_stock(self) -> List[Libro]:

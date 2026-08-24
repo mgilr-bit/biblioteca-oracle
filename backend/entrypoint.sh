@@ -31,12 +31,12 @@ then
 fi
 
 echo "==> [backend] Verificando estado de Alembic..."
-if python -m alembic current 2>/dev/null | grep -q "0001"; then
-    echo "==> [backend] Alembic ya al dia"
-else
-    echo "==> [backend] Primer arranque: alembic stamp head (el schema ya existe, creado por database/*.sql)"
-    python -m alembic stamp head
+if [ -z "$(python -m alembic current 2>/dev/null)" ]; then
+    echo "==> [backend] Primer arranque: alembic stamp 0001 (el schema base ya existe, creado por database/*.sql)"
+    python -m alembic stamp 0001
 fi
+echo "==> [backend] Aplicando migraciones pendientes (alembic upgrade head)..."
+python -m alembic upgrade head
 
 echo "==> [backend] Verificando datos iniciales..."
 

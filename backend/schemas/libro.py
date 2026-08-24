@@ -29,27 +29,27 @@ class LibroListResponse(BaseModel):
 
 
 class LibroCreate(BaseModel):
-    titulo: str
-    autor: str
-    isbn: Optional[str] = None
-    anio_publicacion: Optional[int] = None
-    genero: Optional[str] = None
-    numero_copias: int = 1
-    editorial: Optional[str] = None
+    titulo: str = Field(min_length=1, max_length=200)
+    autor: str = Field(min_length=1, max_length=150)
+    isbn: Optional[str] = Field(default=None, max_length=20)
+    anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
+    genero: Optional[str] = Field(default=None, max_length=50)
+    numero_copias: int = Field(default=1, ge=0, le=10_000)
+    editorial: Optional[str] = Field(default=None, max_length=100)
 
 
 class LibroUpdate(BaseModel):
-    titulo: str
-    autor: str
-    isbn: Optional[str] = None
-    anio_publicacion: Optional[int] = None
-    genero: Optional[str] = None
-    numero_copias: Optional[int] = None
-    editorial: Optional[str] = None
+    titulo: str = Field(min_length=1, max_length=200)
+    autor: str = Field(min_length=1, max_length=150)
+    isbn: Optional[str] = Field(default=None, max_length=20)
+    anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
+    genero: Optional[str] = Field(default=None, max_length=50)
+    numero_copias: Optional[int] = Field(default=None, ge=0, le=10_000)
+    editorial: Optional[str] = Field(default=None, max_length=100)
 
 
 class LibroCopiasUpdate(BaseModel):
-    copias_disponibles: int
+    copias_disponibles: int = Field(ge=0, le=10_000)
 
 
 class LibroEstadisticasResponse(BaseModel):

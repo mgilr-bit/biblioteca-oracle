@@ -22,6 +22,6 @@ class PrestamoResponse(BaseModel):
 
 
 class PrestamoCreate(BaseModel):
-    id_libro: int
-    id_usuario: Optional[int] = None
-    dias_prestamo: Optional[int] = None
+    id_libro: int = Field(ge=1)
+    id_usuario: Optional[int] = Field(default=None, ge=1)
+    dias_prestamo: Optional[int] = Field(default=None, ge=1, le=90)

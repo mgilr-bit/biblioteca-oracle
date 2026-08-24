@@ -40,7 +40,13 @@ LIBROS = [
 def seed_usuarios(session):
     for nombre, email, password, rol in USUARIOS:
         session.add(
-            Usuario(nombre=nombre, email=email, password=hash_password(password), rol=rol)
+            Usuario(
+                nombre=nombre,
+                email=email,
+                password=hash_password(password),
+                rol=rol,
+                created_by="system",
+            )
         )
         print(f"  - Usuario creado: {email} (contraseña hasheada)")
     print(f"Total: {len(USUARIOS)} usuarios insertados")
@@ -58,6 +64,7 @@ def seed_libros(session):
                 numero_copias=copias,
                 copias_disponibles=copias,
                 editorial=editorial,
+                created_by="system",
             )
         )
     print(f"{len(LIBROS)} libros insertados")

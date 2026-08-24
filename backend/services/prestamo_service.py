@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+from core.messages import PrestamoMessages
 from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
@@ -13,7 +14,7 @@ DIAS_PRESTAMO_DEFAULT = 14
 
 
 class PrestamoService(BaseService[Prestamo]):
-    not_found_message = "Préstamo no encontrado"
+    not_found_message = PrestamoMessages.NOT_FOUND
 
     def __init__(self, session):
         super().__init__(PrestamoRepository(session))
@@ -68,33 +69,34 @@ class PrestamoService(BaseService[Prestamo]):
         if requesting_user.rol != "BIBLIOTECARIO":
             id_usuario = requesting_user.id
         elif not id_usuario:
-            raise ValidationError("id_libro e id_usuario son requeridos")
+            raise ValidationError(PrestamoMessages.CAMPOS_REQUERIDOS)
 
         if not id_libro or not id_usuario:
-            raise ValidationError("id_libro e id_usuario son requeridos")
+            raise ValidationError(PrestamoMessages.CAMPOS_REQUERIDOS)
 
         dias = int(dias_prestamo or DIAS_PRESTAMO_DEFAULT)
 
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro or libro.copias_disponibles <= 0:
-            raise BusinessRuleError("No hay copias disponibles")
+            raise BusinessRuleError(PrestamoMessages.SIN_COPIAS)
 
         prestamo = Prestamo(
             id_libro=id_libro,
             id_usuario=id_usuario,
             fecha_devolucion_esperada=datetime.now() + timedelta(days=dias),
         )
-        self.repository.add(prestamo)
+        self.repository.add(prestamo, actor=requesting_user.email)
 
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
-    def devolver(self, id_prestamo: int) -> dict:
+    def devolver(self, id_prestamo: int, actor: str) -> dict:
         prestamo = self.get_by_id(id_prestamo)
         if prestamo.estado == "DEVUELTO":
-            raise ValidationError("El préstamo ya fue devuelto")
+            raise ValidationError(PrestamoMessages.YA_DEVUELTO)
 
         prestamo.estado = "DEVUELTO"
         prestamo.fecha_devolucion_real = datetime.now()
+        self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

@@ -38,7 +38,7 @@ def create_usuario_admin(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Usuario", "create")),
 ):
-    return UsuarioService(session).create_admin(body.model_dump())
+    return UsuarioService(session).create_admin(body.model_dump(), actor=user.email)
 
 
 @router.get("/{id_usuario}", response_model=UsuarioResponse)
@@ -69,7 +69,7 @@ def toggle_estado_usuario(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Usuario", "toggle_estado")),
 ):
-    return UsuarioService(session).toggle_estado(id_usuario, body.activo)
+    return UsuarioService(session).toggle_estado(id_usuario, body.activo, actor=user.email)
 
 
 @router.delete("/{id_usuario}", response_model=MessageResponse)
@@ -78,4 +78,4 @@ def delete_usuario(
     session: Session = Depends(get_db_session),
     user=Depends(require_permission("Usuario", "delete")),
 ):
-    return UsuarioService(session).delete(id_usuario)
+    return UsuarioService(session).delete(id_usuario, actor=user.email)

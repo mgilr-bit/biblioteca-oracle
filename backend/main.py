@@ -14,7 +14,9 @@ from slowapi.errors import RateLimitExceeded
 from core.casbin_enforcer import ensure_default_policies
 from core.config import settings
 from core.csrf import csrf_middleware
+from core.messages import GenericMessages
 from core.rate_limit import limiter
+from core.request_limits import body_size_limit_middleware
 from core.security_headers import security_headers_middleware
 from routers import auth_router, libro_router, prestamo_router, usuario_router
 from services.exceptions import ServiceError
@@ -59,6 +61,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # router; si quedara más interno, el navegador no podría ni leer esos errores.
 app.middleware("http")(security_headers_middleware)
 app.middleware("http")(csrf_middleware)
+app.middleware("http")(body_size_limit_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
@@ -83,7 +86,7 @@ async def service_error_handler(request: Request, exc: ServiceError):
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception):
     logger.exception(f"Error no controlado en {request.url.path}: {exc}")
-    return JSONResponse(status_code=500, content={"error": "Error interno del servidor"})
+    return JSONResponse(status_code=500, content={"error": GenericMessages.ERROR_INTERNO})
 
 
 @app.get("/redoc", include_in_schema=False)

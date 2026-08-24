@@ -3,10 +3,12 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Column, Identity, Integer, text
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
+
+from models.base import AuditMixin
 
 
-class Prestamo(SQLModel, table=True):
+class Prestamo(AuditMixin, table=True):
     __tablename__ = "prestamos"
 
     id_prestamo: Optional[int] = Field(
