@@ -6,18 +6,17 @@ from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
-from services.exceptions import (
-    BusinessRuleError,
-    NotFoundError,
-    ValidationError,
-)
+from services.base import BaseService
+from services.exceptions import BusinessRuleError, ValidationError
 
 DIAS_PRESTAMO_DEFAULT = 14
 
 
-class PrestamoService:
+class PrestamoService(BaseService[Prestamo]):
+    not_found_message = "Préstamo no encontrado"
+
     def __init__(self, session):
-        self.prestamo_repo = PrestamoRepository(session)
+        super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
 
     def _calcular_estado(self, prestamo: Prestamo) -> str:
@@ -45,21 +44,21 @@ class PrestamoService:
         )
 
     def get_all(self) -> List[PrestamoResponse]:
-        return [self._serializar(row) for row in self.prestamo_repo.get_all_with_details()]
+        return [self._serializar(row) for row in self.repository.get_all_with_details()]
 
     def get_activos(self) -> List[PrestamoResponse]:
-        return [self._serializar(row) for row in self.prestamo_repo.get_activos_with_details()]
+        return [self._serializar(row) for row in self.repository.get_activos_with_details()]
 
     def get_by_usuario(self, id_usuario: int) -> List[PrestamoResponse]:
         return [
             self._serializar(row)
-            for row in self.prestamo_repo.get_by_usuario_with_details(id_usuario)
+            for row in self.repository.get_by_usuario_with_details(id_usuario)
         ]
 
     def get_vencidos(self) -> List[PrestamoResponse]:
         return [
             self._serializar(row)
-            for row in self.prestamo_repo.get_vencidos_with_details()
+            for row in self.repository.get_vencidos_with_details()
         ]
 
     def create(self, id_libro: int, id_usuario: Optional[int], dias_prestamo, requesting_user) -> dict:
@@ -85,17 +84,17 @@ class PrestamoService:
             id_usuario=id_usuario,
             fecha_devolucion_esperada=datetime.now() + timedelta(days=dias),
         )
-        self.prestamo_repo.add(prestamo)
+        self.repository.add(prestamo)
 
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
     def devolver(self, id_prestamo: int) -> dict:
-        prestamo = self.prestamo_repo.get_by_id(id_prestamo)
-        if not prestamo or prestamo.estado == "DEVUELTO":
-            raise NotFoundError("Préstamo no encontrado o ya devuelto")
+        prestamo = self.get_by_id(id_prestamo)
+        if prestamo.estado == "DEVUELTO":
+            raise ValidationError("El préstamo ya fue devuelto")
 
         prestamo.estado = "DEVUELTO"
         prestamo.fecha_devolucion_real = datetime.now()
-        self.prestamo_repo.flush()
+        self.repository.flush()
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

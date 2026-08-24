@@ -53,12 +53,9 @@ sqlplus biblioteca_user/BiblioPass123@//localhost:1521/XEPDB1 @07_indices_adicio
 ```bash
 cd backend
 
-# Crear entorno virtual
-python3 -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements.txt
+# Instalar dependencias con uv (crea el entorno virtual automáticamente)
+# https://docs.astral.sh/uv/getting-started/installation/
+uv sync
 ```
 
 ### 4. Configurar variables de entorno
@@ -88,7 +85,7 @@ Después de instalar, las contraseñas de prueba deben ser actualizadas con hash
 
 ```bash
 cd backend
-python init_data.py
+uv run python seed.py
 ```
 
 ## Ejecución
@@ -97,8 +94,7 @@ python init_data.py
 
 ```bash
 cd backend
-source venv/bin/activate  # En Windows: venv\Scripts\activate
-python app.py
+uv run uvicorn main:app --reload
 ```
 
 El backend estará disponible en `http://localhost:5000`
@@ -175,9 +171,10 @@ biblioteca-oracle/
 │   │   └── usuarios.py        # Gestión de usuarios
 │   ├── utils/
 │   │   └── security.py        # JWT, bcrypt, decoradores
-│   ├── app.py                 # Aplicación principal
-│   ├── init_data.py           # Script para actualizar contraseñas
-│   └── requirements.txt       # Dependencias
+│   ├── main.py                # Aplicación principal (FastAPI)
+│   ├── seed.py                # Script para sembrar datos de demo
+│   ├── pyproject.toml         # Dependencias (uv)
+│   └── uv.lock                # Lockfile de dependencias
 ├── database/
 │   ├── 00_cleanup.sql         # Limpieza
 │   ├── 01_setup.sql           # Configuración inicial
@@ -245,7 +242,7 @@ ModuleNotFoundError: No module named 'bcrypt'
 **Solución**: Instalar dependencias:
 
 ```bash
-pip install -r requirements.txt
+cd backend && uv sync
 ```
 
 ### Error de CORS

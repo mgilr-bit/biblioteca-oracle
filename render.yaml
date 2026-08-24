@@ -4,11 +4,11 @@ services:
     name: biblioteca-api
     env: python
     region: oregon
-    buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app"
+    buildCommand: "cd backend && pip install uv && uv sync --frozen"
+    startCommand: "cd backend && uv run alembic upgrade head && uv run gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT main:app"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.12.7
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD

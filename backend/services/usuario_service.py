@@ -5,15 +5,11 @@ respuesta (`schemas.usuario.UsuarioResponse`, que nunca incluye el
 password) lo hace el router vía `response_model`.
 """
 import logging
-from typing import List
 
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
-from services.exceptions import (
-    BusinessRuleError,
-    NotFoundError,
-    ValidationError,
-)
+from services.base import BaseService
+from services.exceptions import BusinessRuleError, ValidationError
 from utils.security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -21,23 +17,14 @@ logger = logging.getLogger(__name__)
 ROLES_VALIDOS = ("LECTOR", "BIBLIOTECARIO")
 
 
-class UsuarioService:
+class UsuarioService(BaseService[Usuario]):
+    not_found_message = "Usuario no encontrado"
+
     def __init__(self, session):
-        self.usuario_repo = UsuarioRepository(session)
-
-    def get_all(self) -> List[Usuario]:
-        return self.usuario_repo.get_all()
-
-    def get_by_id(self, id_usuario: int) -> Usuario:
-        usuario = self.usuario_repo.get_by_id(id_usuario)
-        if not usuario:
-            raise NotFoundError("Usuario no encontrado")
-        return usuario
+        super().__init__(UsuarioRepository(session))
 
     def update(self, id_usuario: int, data: dict, requesting_user) -> dict:
-        usuario = self.usuario_repo.get_by_id(id_usuario)
-        if not usuario:
-            raise NotFoundError("Usuario no encontrado")
+        usuario = self.get_by_id(id_usuario)
 
         nombre = data.get("nombre")
         email = data.get("email")
@@ -53,21 +40,17 @@ class UsuarioService:
         usuario.nombre = nombre
         usuario.email = email
         usuario.rol = rol
-        self.usuario_repo.flush()
+        self.repository.flush()
 
         return {"success": True, "message": "Usuario actualizado exitosamente"}
 
     def delete(self, id_usuario: int) -> dict:
-        if self.usuario_repo.count_active_prestamos(id_usuario) > 0:
+        if self.repository.count_active_prestamos(id_usuario) > 0:
             raise BusinessRuleError(
                 "No se puede eliminar el usuario. Tiene préstamos activos."
             )
 
-        usuario = self.usuario_repo.get_by_id(id_usuario)
-        if not usuario:
-            raise NotFoundError("Usuario no encontrado")
-
-        self.usuario_repo.delete(usuario)
+        self.delete_entity(id_usuario)
         logger.info(f"Usuario {id_usuario} eliminado permanentemente")
         return {"success": True, "message": "Usuario eliminado permanentemente"}
 
@@ -86,7 +69,7 @@ class UsuarioService:
         if len(password) < 6:
             raise ValidationError("La contraseña debe tener al menos 6 caracteres")
 
-        if self.usuario_repo.get_by_email(email):
+        if self.repository.get_by_email(email):
             logger.warning(f"Intento de crear usuario con email duplicado: {email}")
             raise ValidationError("El email ya está registrado")
 
@@ -96,7 +79,7 @@ class UsuarioService:
             password=hash_password(password),
             rol=rol,
         )
-        self.usuario_repo.add(usuario)
+        self.repository.add(usuario)
 
         logger.info(f"Nuevo usuario creado por admin: {email} con rol {rol}")
         return {"success": True, "message": f"Usuario creado exitosamente como {rol}"}
@@ -105,12 +88,9 @@ class UsuarioService:
         if activo not in ("S", "N"):
             raise ValidationError("Estado inválido. Debe ser 'S' o 'N'")
 
-        usuario = self.usuario_repo.get_by_id(id_usuario)
-        if not usuario:
-            raise NotFoundError("Usuario no encontrado")
-
+        usuario = self.get_by_id(id_usuario)
         usuario.activo = activo
-        self.usuario_repo.flush()
+        self.repository.flush()
 
         estado_texto = "activado" if activo == "S" else "desactivado"
         logger.info(f"Usuario {id_usuario} {estado_texto}")
