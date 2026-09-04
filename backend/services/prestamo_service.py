@@ -9,6 +9,7 @@ from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
+from services.multa_service import MultaService
 
 DIAS_PRESTAMO_DEFAULT = 14
 
@@ -19,6 +20,7 @@ class PrestamoService(BaseService[Prestamo]):
     def __init__(self, session):
         super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
+        self.multa_service = MultaService(session)
 
     def _calcular_estado(self, prestamo: Prestamo) -> str:
         if (
@@ -76,6 +78,9 @@ class PrestamoService(BaseService[Prestamo]):
 
         dias = int(dias_prestamo or DIAS_PRESTAMO_DEFAULT)
 
+        if self.multa_service.usuario_tiene_pendientes(id_usuario):
+            raise BusinessRuleError(PrestamoMessages.MULTAS_PENDIENTES)
+
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro or libro.copias_disponibles <= 0:
             raise BusinessRuleError(PrestamoMessages.SIN_COPIAS)
@@ -98,5 +103,14 @@ class PrestamoService(BaseService[Prestamo]):
         prestamo.fecha_devolucion_real = datetime.now()
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
+
+        multa = self.multa_service.generar_por_devolucion_tardia(prestamo, actor=actor)
+        if multa is not None:
+            return {
+                "success": True,
+                "message": PrestamoMessages.DEVOLUCION_CON_MULTA.format(
+                    monto=multa.monto, dias=multa.dias_retraso
+                ),
+            }
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

@@ -33,6 +33,14 @@ export const prestamosAPI = {
   devolver: (id) => http.put(`/prestamos/${id}/devolver`)
 }
 
+export const multasAPI = {
+  getAll: () => http.get('/multas/'),
+  getPendientes: () => http.get('/multas/pendientes'),
+  getByUsuario: (idUsuario) => http.get(`/multas/usuario/${idUsuario}`),
+  pagar: (id) => http.put(`/multas/${id}/pagar`),
+  condonar: (id) => http.put(`/multas/${id}/condonar`)
+}
+
 export const usuariosAPI = {
   getAll: () => http.get('/usuarios/'),
   getById: (id) => http.get(`/usuarios/${id}`),

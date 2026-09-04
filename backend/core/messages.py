@@ -42,6 +42,18 @@ class PrestamoMessages:
     YA_DEVUELTO = "El préstamo ya fue devuelto"
     CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
     SIN_COPIAS = "No hay copias disponibles"
+    MULTAS_PENDIENTES = "El usuario tiene multas pendientes de pago"
+    DEVOLUCION_CON_MULTA = (
+        "Devolución registrada. Se generó una multa de Q{monto} por {dias} día(s) de retraso"
+    )
+
+
+class MultaMessages:
+    NOT_FOUND = "Multa no encontrada"
+    NO_PENDIENTE = "La multa no está pendiente"
+    PAGADA_OK = "Multa marcada como pagada"
+    CONDONADA_OK = "Multa condonada"
+    MOTIVO_ATRASO = "Devolución con {dias} día(s) de retraso"
 
 
 class GenericMessages:
