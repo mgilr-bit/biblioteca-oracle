@@ -96,6 +96,14 @@ DEFAULT_POLICIES = [
     ("PROFESOR", "Reserva", "read", "true"),
     ("PROFESOR", "Reserva", "create", "false"),
     ("PROFESOR", "Reserva", "cancel", "true"),
+    # Notificaciones: bandeja personal (owner_only para LECTOR/PROFESOR);
+    # BIBLIOTECARIO lee todas (asiste a usuarios); mantenimiento solo ADMIN.
+    ("BIBLIOTECARIO", "Notificacion", "read", "false"),
+    ("BIBLIOTECARIO", "Notificacion", "update", "false"),
+    ("LECTOR", "Notificacion", "read", "true"),
+    ("LECTOR", "Notificacion", "update", "true"),
+    ("PROFESOR", "Notificacion", "read", "true"),
+    ("PROFESOR", "Notificacion", "update", "true"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

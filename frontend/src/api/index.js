@@ -24,6 +24,13 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const notificacionesAPI = {
+  getAll: () => http.get('/notificaciones/'),
+  getNoLeidas: () => http.get('/notificaciones/no-leidas/count'),
+  marcarLeida: (id) => http.put(`/notificaciones/${id}/leida`),
+  marcarTodasLeidas: () => http.put('/notificaciones/marcar-todas-leidas')
+}
+
 export const reservasAPI = {
   getAll: () => http.get('/reservas/'),
   getByUsuario: (idUsuario) => http.get(`/reservas/usuario/${idUsuario}`),

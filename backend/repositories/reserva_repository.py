@@ -1,4 +1,5 @@
 """Repositorio de acceso a datos para la entidad Reserva."""
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import func
@@ -60,5 +61,19 @@ class ReservaRepository(BaseRepository[Reserva]):
                 Reserva.estado == "ACTIVA",
             )
             .order_by(Reserva.fecha_reserva)
+        )
+        return list(self.session.exec(stmt))
+
+    def get_cumplidas_expiradas(self) -> List[Reserva]:
+        """Reservas CUMPLIDA cuya ventana de recogida ya venció (para el job)."""
+        stmt = (
+            select(Reserva)
+            .where(
+                Reserva.is_deleted == False,  # noqa: E712
+                Reserva.estado == "CUMPLIDA",
+                Reserva.fecha_expiracion.is_not(None),
+                Reserva.fecha_expiracion < datetime.now(),
+            )
+            .order_by(Reserva.fecha_expiracion)
         )
         return list(self.session.exec(stmt))

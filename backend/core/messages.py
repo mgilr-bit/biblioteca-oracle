@@ -65,6 +65,15 @@ class ReservaMessages:
     NO_CANCELABLE = "Solo se pueden cancelar reservas activas"
 
 
+class NotificacionMessages:
+    NOT_FOUND = "Notificación no encontrada"
+    RECORDATORIO_HOY = "Su préstamo #{id} vence HOY. Devuélvalo a tiempo para evitar multas."
+    RECORDATORIO_3D = "El préstamo #{id} vence en 3 días. Recuerde devolverlo a tiempo."
+    VENCIDO = "Su préstamo #{id} lleva {dias} día(s) de retraso. Devuélvalo para evitar una multa."
+    RESERVA_DISPONIBLE = "Una copia de su libro reservado está disponible. Recójala en la biblioteca ({dias} días)."
+    MULTA_GENERADA = "Se generó una multa de Q{monto} por el préstamo #{id}. Regularice su estado."
+
+
 class PrestamoMessages:
     NOT_FOUND = "Préstamo no encontrado"
     YA_DEVUELTO = "El préstamo ya fue devuelto"

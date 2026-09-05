@@ -23,6 +23,7 @@ from routers import (
     editorial_router,
     ejemplar_router,
     libro_router,
+    notificacion_router,
     prestamo_router,
     reserva_router,
     usuario_router,
@@ -113,6 +114,7 @@ app.include_router(prestamo_router, prefix="/api/prestamos")
 app.include_router(editorial_router, prefix="/api/editoriales")
 app.include_router(ejemplar_router, prefix="/api/ejemplares")
 app.include_router(reserva_router, prefix="/api/reservas")
+app.include_router(notificacion_router, prefix="/api/notificaciones")
 
 
 @app.get("/")
@@ -128,6 +130,7 @@ def home():
             "editoriales": "/api/editoriales",
             "ejemplares": "/api/ejemplares",
             "reservas": "/api/reservas",
+            "notificaciones": "/api/notificaciones",
         },
     }
 
