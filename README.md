@@ -149,8 +149,20 @@ Después de ejecutar `init_data.py`:
 - `GET /api/prestamos/activos` - Préstamos activos
 - `GET /api/prestamos/vencidos` - Préstamos vencidos
 - `GET /api/prestamos/usuario/<id>` - Préstamos de un usuario
-- `POST /api/prestamos/` - Crear préstamo (solo bibliotecarios)
-- `PUT /api/prestamos/<id>/devolver` - Registrar devolución (solo bibliotecarios)
+- `POST /api/prestamos/` - Crear préstamo (bloqueado si el usuario tiene multas pendientes)
+- `PUT /api/prestamos/<id>/devolver` - Registrar devolución (solo bibliotecarios); genera una multa de Q35 si es tardía
+
+### Multas (requiere autenticación)
+
+Al devolver un préstamo después de la fecha esperada se genera automáticamente
+una multa fija de **Q35** en estado `PENDIENTE`. Mientras el usuario tenga
+multas pendientes no puede solicitar nuevos préstamos.
+
+- `GET /api/multas/` - Listar todas las multas (solo bibliotecarios)
+- `GET /api/multas/pendientes` - Multas pendientes de pago (solo bibliotecarios)
+- `GET /api/multas/usuario/<id>` - Multas de un usuario (propias, o cualquiera si es bibliotecario)
+- `PUT /api/multas/<id>/pagar` - Marcar multa como pagada (solo bibliotecarios)
+- `PUT /api/multas/<id>/condonar` - Condonar multa (solo bibliotecarios)
 
 ### Usuarios (requiere autenticación)
 

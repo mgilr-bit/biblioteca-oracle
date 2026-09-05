@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { librosAPI, prestamosAPI } from '../api'
+import { librosAPI, prestamosAPI, multasAPI } from '../api'
 import { useToast } from '../composables/useToast'
 
 const auth = useAuthStore()
@@ -12,6 +12,7 @@ const loading = ref(true)
 const stats = ref(null)
 const bajoStock = ref([])
 const prestamosRecientes = ref([])
+const multasPendientes = ref([])
 
 // --- Estado lector ---
 const misPrestamos = ref([])
@@ -19,6 +20,11 @@ const prestamosVencidos = ref([])
 const prestamosPorVencer = ref([])
 const totalHistorico = ref(0)
 const librosDisponibles = ref([])
+const misMultasPendientes = ref([])
+
+function money(value) {
+  return 'Q' + Number(value ?? 0).toFixed(2)
+}
 
 function diasRestantes(fecha) {
   const hoy = new Date()
@@ -35,14 +41,16 @@ function badgeDias(p) {
 }
 
 async function loadBibliotecario() {
-  const [estadisticas, activos, stock] = await Promise.all([
+  const [estadisticas, activos, stock, multas] = await Promise.all([
     librosAPI.getEstadisticas(),
     prestamosAPI.getActivos(),
-    librosAPI.getBajoStock()
+    librosAPI.getBajoStock(),
+    multasAPI.getPendientes()
   ])
   stats.value = estadisticas
   bajoStock.value = stock
   prestamosRecientes.value = activos.slice(0, 10)
+  multasPendientes.value = multas
 }
 
 async function loadLector() {
@@ -54,6 +62,9 @@ async function loadLector() {
     return dias <= 3 && dias >= 0 && p.ESTADO !== 'VENCIDO'
   })
   totalHistorico.value = todos.length
+
+  const misMultas = await multasAPI.getByUsuario(auth.user.id)
+  misMultasPendientes.value = misMultas.filter((m) => m.ESTADO === 'PENDIENTE')
 
   const respLibros = await librosAPI.getAll(1, 100)
   const todosLosLibros = respLibros.libros || respLibros
@@ -98,6 +109,13 @@ onMounted(async () => {
         <div class="stat-card is-danger">
           <div class="stat-card__label">Bajo stock</div>
           <div class="stat-card__value">{{ bajoStock.length }}</div>
+        </div>
+        <div class="stat-card is-danger">
+          <div class="stat-card__label">Multas pendientes</div>
+          <div class="stat-card__value">{{ multasPendientes.length }}</div>
+          <div class="stat-card__hint">
+            {{ money(multasPendientes.reduce((a, m) => a + Number(m.MONTO ?? 0), 0)) }} por cobrar
+          </div>
         </div>
       </div>
 
@@ -164,6 +182,19 @@ onMounted(async () => {
           <div class="stat-card__label">Total histórico</div>
           <div class="stat-card__value">{{ totalHistorico }}</div>
         </div>
+        <div class="stat-card is-danger">
+          <div class="stat-card__label">Multas pendientes</div>
+          <div class="stat-card__value">{{ misMultasPendientes.length }}</div>
+          <div class="stat-card__hint">
+            {{ money(misMultasPendientes.reduce((a, m) => a + Number(m.MONTO ?? 0), 0)) }} a pagar
+          </div>
+        </div>
+      </div>
+
+      <div v-if="misMultasPendientes.length" class="notice notice-danger">
+        Tienes {{ misMultasPendientes.length }} multa(s) pendiente(s) por
+        {{ money(misMultasPendientes.reduce((a, m) => a + Number(m.MONTO ?? 0), 0)) }}.
+        No podrás solicitar nuevos préstamos hasta regularizar tu situación con el bibliotecario.
       </div>
 
       <div class="card">

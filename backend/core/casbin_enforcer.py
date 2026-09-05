@@ -61,6 +61,10 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Prestamo", "devolver", "false"),
     ("LECTOR", "Prestamo", "read", "true"),
     ("LECTOR", "Prestamo", "create", "false"),
+    # Multas: BIBLIOTECARIO ve todas y las cierra (pagar/condonar); LECTOR solo lee las suyas.
+    ("BIBLIOTECARIO", "Multa", "read", "false"),
+    ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
+    ("LECTOR", "Multa", "read", "true"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
@@ -68,10 +72,21 @@ enforcer = casbin.Enforcer(_MODEL_PATH, _adapter)
 
 
 def ensure_default_policies() -> None:
-    """Siembra las políticas por defecto en `casbin_rule` (Oracle) si la tabla está vacía."""
+    """Siembra en `casbin_rule` (Oracle) las políticas por defecto que falten.
+
+    Antes solo sembraba cuando la tabla estaba totalmente vacía, lo que
+    dejaba fuera cualquier política nueva agregada a `DEFAULT_POLICIES` en
+    un despliegue que ya tenía la tabla poblada (p. ej. las de `Multa`).
+    Ahora agrega, una por una, solo las que no existen todavía.
+    """
     enforcer.load_policy()
-    if enforcer.get_policy():
+    nuevas = [
+        (rol, subject, act, owner_only)
+        for rol, subject, act, owner_only in DEFAULT_POLICIES
+        if not enforcer.has_policy(rol, subject, act, owner_only)
+    ]
+    if not nuevas:
         return
-    for rol, subject, act, owner_only in DEFAULT_POLICIES:
+    for rol, subject, act, owner_only in nuevas:
         enforcer.add_policy(rol, subject, act, owner_only)
     enforcer.save_policy()

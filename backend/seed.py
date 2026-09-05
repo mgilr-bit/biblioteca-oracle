@@ -13,6 +13,7 @@ from sqlalchemy import delete, text
 from config.database import SessionLocal
 from core.config import settings
 from models.libro import Libro
+from models.multa import Multa
 from models.prestamo import Prestamo
 from models.usuario import Usuario
 from utils.security import hash_password
@@ -81,6 +82,7 @@ def main():
         session.execute(text("SELECT 1 FROM DUAL"))
         print("Conexión a la base de datos OK")
 
+        session.execute(delete(Multa))
         session.execute(delete(Prestamo))
         session.execute(delete(Libro))
         session.execute(delete(Usuario))

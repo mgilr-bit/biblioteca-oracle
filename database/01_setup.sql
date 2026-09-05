@@ -3,7 +3,7 @@ ALTER SESSION SET CONTAINER = XEPDB1;
 
 -- Crear tablespace personalizado
 CREATE TABLESPACE PROYECTO_BD
-DATAFILE '/opt/oracle/oradata/XE/XEPDB1/proyecto_bd.dbf' SIZE 100M
+DATAFILE 'C:\app\Manases\product\21c\oradata\XE\XEPDB1\proyecto_bd.dbf' SIZE 100M
 AUTOEXTEND ON NEXT 10M MAXSIZE 500M;
 
 -- Crear usuario para el proyecto

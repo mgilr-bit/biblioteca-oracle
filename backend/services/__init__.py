@@ -7,6 +7,7 @@ from .exceptions import (
     ValidationError,
 )
 from .libro_service import LibroService
+from .multa_service import MultaService
 from .prestamo_service import PrestamoService
 from .usuario_service import UsuarioService
 
@@ -15,6 +16,7 @@ __all__ = [
     "AuthService",
     "BusinessRuleError",
     "LibroService",
+    "MultaService",
     "NotFoundError",
     "PrestamoService",
     "ServiceError",
