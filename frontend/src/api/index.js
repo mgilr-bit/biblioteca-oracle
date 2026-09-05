@@ -24,6 +24,14 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const reservasAPI = {
+  getAll: () => http.get('/reservas/'),
+  getByUsuario: (idUsuario) => http.get(`/reservas/usuario/${idUsuario}`),
+  getCola: (idLibro) => http.get(`/reservas/cola/${idLibro}`),
+  create: (reserva) => http.post('/reservas/', reserva),
+  cancelar: (id) => http.put(`/reservas/${id}/cancelar`)
+}
+
 export const ejemplaresAPI = {
   getAll: async (page = 1, perPage = 100, filters = {}) => {
     const params = new URLSearchParams({ page, per_page: perPage })

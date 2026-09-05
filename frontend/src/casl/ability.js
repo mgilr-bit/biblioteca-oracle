@@ -23,6 +23,9 @@ export function buildAbilityFor(user) {
     can('read', 'Libro')
     can(['create', 'read'], 'Prestamo', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
+    can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })
+    can('read', 'Editorial')
+    can('read', 'Ejemplar')
   }
 
   return build()

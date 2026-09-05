@@ -86,6 +86,16 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Ejemplar", "delete", "false"),
     ("LECTOR", "Ejemplar", "read", "false"),
     ("PROFESOR", "Ejemplar", "read", "false"),
+    # Reservas: biblioteca gestiona todas; LECTOR/PROFESOR crea y atiende las suyas.
+    ("BIBLIOTECARIO", "Reserva", "read", "false"),
+    ("BIBLIOTECARIO", "Reserva", "create", "false"),
+    ("BIBLIOTECARIO", "Reserva", "cancel", "false"),
+    ("LECTOR", "Reserva", "read", "true"),
+    ("LECTOR", "Reserva", "create", "false"),
+    ("LECTOR", "Reserva", "cancel", "true"),
+    ("PROFESOR", "Reserva", "read", "true"),
+    ("PROFESOR", "Reserva", "create", "false"),
+    ("PROFESOR", "Reserva", "cancel", "true"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

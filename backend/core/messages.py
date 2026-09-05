@@ -55,6 +55,16 @@ class EjemplarMessages:
     NO_BORRAR_PRESTADO = "No se puede eliminar un ejemplar prestado; devuélvalo primero"
 
 
+class ReservaMessages:
+    NOT_FOUND = "Reserva no encontrada"
+    CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
+    ID_USUARIO_REQUERIDO = "id_usuario es requerido"
+    LIBRO_NO_EXISTE = "El libro no existe"
+    MAX_RESERVAS = "Límite de {max} reservas simultáneas alcanzado"
+    RESERVA_DUPLICADA = "Ya tiene una reserva activa para este libro"
+    NO_CANCELABLE = "Solo se pueden cancelar reservas activas"
+
+
 class PrestamoMessages:
     NOT_FOUND = "Préstamo no encontrado"
     YA_DEVUELTO = "El préstamo ya fue devuelto"

@@ -24,6 +24,7 @@ from routers import (
     ejemplar_router,
     libro_router,
     prestamo_router,
+    reserva_router,
     usuario_router,
 )
 from services.exceptions import ServiceError
@@ -111,6 +112,7 @@ app.include_router(usuario_router, prefix="/api/usuarios")
 app.include_router(prestamo_router, prefix="/api/prestamos")
 app.include_router(editorial_router, prefix="/api/editoriales")
 app.include_router(ejemplar_router, prefix="/api/ejemplares")
+app.include_router(reserva_router, prefix="/api/reservas")
 
 
 @app.get("/")
@@ -125,6 +127,7 @@ def home():
             "prestamos": "/api/prestamos",
             "editoriales": "/api/editoriales",
             "ejemplares": "/api/ejemplares",
+            "reservas": "/api/reservas",
         },
     }
 

@@ -10,6 +10,7 @@ from schemas.prestamo import PrestamoResponse
 from services.base import BaseService
 from services.ejemplar_service import EjemplarService
 from services.exceptions import BusinessRuleError, ValidationError
+from services.reserva_service import ReservaService
 
 DIAS_PRESTAMO_DEFAULT = 14
 
@@ -21,6 +22,7 @@ class PrestamoService(BaseService[Prestamo]):
         super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
         self.ejemplar_service = EjemplarService(session)
+        self.reserva_service = ReservaService(session)
 
     def _calcular_estado(self, prestamo: Prestamo) -> str:
         if (
@@ -111,5 +113,9 @@ class PrestamoService(BaseService[Prestamo]):
 
         if prestamo.id_ejemplar:
             self.ejemplar_service.liberar(prestamo.id_ejemplar)
+
+        # Fase 3 (reservas): al volver una copia, la reserva FIFO más antigua
+        # pasa a CUMPLIDA y abre su ventana de recogida para el reservante.
+        self.reserva_service.promover_siguiente(prestamo.id_libro)
 
         return {"success": True, "message": "Devolución registrada exitosamente"}
