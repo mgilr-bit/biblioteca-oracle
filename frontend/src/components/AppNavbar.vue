@@ -29,7 +29,7 @@ async function logout() {
         <router-link to="/prestamos" class="app-nav__link" active-class="is-active">
           Préstamos
         </router-link>
-        <router-link v-if="auth.isBibliotecario" to="/usuarios" class="app-nav__link" active-class="is-active">
+        <router-link v-can:manage="'all'" to="/usuarios" class="app-nav__link" active-class="is-active">
           Usuarios
         </router-link>
       </nav>

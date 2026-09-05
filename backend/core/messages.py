@@ -24,11 +24,13 @@ class UsuarioMessages:
     ADMIN_CAMPOS_REQUERIDOS = "Nombre, email, contraseña y rol son requeridos"
     UPDATE_CAMPOS_REQUERIDOS = "Nombre, email y rol son requeridos"
     EMAIL_DUPLICADO = "El email ya está registrado"
-    ROL_INVALIDO = "Rol inválido. Debe ser LECTOR o BIBLIOTECARIO"
+    ROL_INVALIDO = "Rol inválido. Debe ser LECTOR, PROFESOR, BIBLIOTECARIO o ADMIN"
     PASSWORD_MUY_CORTA = "La contraseña debe tener al menos 8 caracteres"
     PASSWORD_MUY_LARGA = "La contraseña no puede superar los 72 caracteres"
     ESTADO_INVALIDO = "Estado inválido. Debe ser 'S' o 'N'"
     TIENE_PRESTAMOS_ACTIVOS = "No se puede eliminar el usuario. Tiene préstamos activos."
+    SOLO_ADMIN_GESTIONA_ADMIN = "Solo un ADMIN del sistema puede gestionar usuarios con rol ADMIN"
+    ROL_SUPERIOR_BLOQUEADO = "No puede crear o asignar un rol que no puede gestionar (BIBLIOTECARIO o ADMIN)"
 
 
 class LibroMessages:

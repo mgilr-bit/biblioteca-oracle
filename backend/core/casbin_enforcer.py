@@ -40,14 +40,21 @@ class OracleCasbinRule(_CasbinBase):
 
 # (rol, subject, act, owner_only)
 DEFAULT_POLICIES = [
-    # Libros: lectura abierta a cualquier rol autenticado, escritura solo BIBLIOTECARIO.
+    # ADMIN del sistema: control total sobre cualquier recurso y acción.
+    # El matcher interpreta "*" como comodín (ver casbin_model.conf).
+    ("ADMIN", "*", "*", "false"),
+    # Libros: lectura abierta a cualquier rol autenticado, escritura solo BIBLIOTECARIO/ADMIN.
     ("BIBLIOTECARIO", "Libro", "read", "false"),
     ("BIBLIOTECARIO", "Libro", "create", "false"),
     ("BIBLIOTECARIO", "Libro", "update", "false"),
     ("BIBLIOTECARIO", "Libro", "delete", "false"),
     ("LECTOR", "Libro", "read", "false"),
-    # Usuarios: BIBLIOTECARIO administra a cualquiera; LECTOR solo lee/edita su propio perfil
-    # (el servicio impide además que un LECTOR se cambie el rol a sí mismo).
+    ("PROFESOR", "Libro", "read", "false"),
+    # Usuarios: BIBLIOTECARIO administra a cualquiera salvo a roles superiores
+    # (la protección de jerarquía vive en UsuarioService: no puede tocar a un
+    # ADMIN ni crear bibliotecarios/administradores); LECTOR/PROFESOR solo
+    # lee/edita su propio perfil (owner_only=true) y el servicio impide además
+    # que se cambien el rol a sí mismos.
     ("BIBLIOTECARIO", "Usuario", "read", "false"),
     ("BIBLIOTECARIO", "Usuario", "create", "false"),
     ("BIBLIOTECARIO", "Usuario", "update", "false"),
@@ -55,12 +62,16 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Usuario", "toggle_estado", "false"),
     ("LECTOR", "Usuario", "read", "true"),
     ("LECTOR", "Usuario", "update", "true"),
-    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR crea y lee solo los suyos.
+    ("PROFESOR", "Usuario", "read", "true"),
+    ("PROFESOR", "Usuario", "update", "true"),
+    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR y PROFESOR crean y leen solo los suyos.
     ("BIBLIOTECARIO", "Prestamo", "read", "false"),
     ("BIBLIOTECARIO", "Prestamo", "create", "false"),
     ("BIBLIOTECARIO", "Prestamo", "devolver", "false"),
     ("LECTOR", "Prestamo", "read", "true"),
     ("LECTOR", "Prestamo", "create", "false"),
+    ("PROFESOR", "Prestamo", "read", "true"),
+    ("PROFESOR", "Prestamo", "create", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
@@ -68,10 +79,17 @@ enforcer = casbin.Enforcer(_MODEL_PATH, _adapter)
 
 
 def ensure_default_policies() -> None:
-    """Siembra las políticas por defecto en `casbin_rule` (Oracle) si la tabla está vacía."""
+    """Siembra las políticas por defecto en `casbin_rule` (Oracle).
+
+    Es idempotente: en instalaciones nuevas siembra todas, y en instalaciones
+    existentes solo agrega las que falten (así nuevos roles/permisos llegan
+    sin tener que truncar la tabla ni tocar la BD a mano).
+    """
     enforcer.load_policy()
-    if enforcer.get_policy():
-        return
+    existing = {tuple(policy) for policy in enforcer.get_policy()}
     for rol, subject, act, owner_only in DEFAULT_POLICIES:
-        enforcer.add_policy(rol, subject, act, owner_only)
+        policy = (rol, subject, act, owner_only)
+        if policy not in existing:
+            enforcer.add_policy(*policy)
+            existing.add(policy)
     enforcer.save_policy()

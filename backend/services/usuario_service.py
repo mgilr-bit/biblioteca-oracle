@@ -15,7 +15,29 @@ from utils.security import hash_password
 
 logger = logging.getLogger(__name__)
 
-ROLES_VALIDOS = ("LECTOR", "BIBLIOTECARIO")
+ROLES_VALIDOS = ("LECTOR", "PROFESOR", "BIBLIOTECARIO", "ADMIN")
+ROLES_SOLO_ADMIN = ("BIBLIOTECARIO", "ADMIN")
+
+
+def _es_rol_superior(rol: str) -> bool:
+    """Roles que solo un ADMIN puede crear o asignar."""
+    return rol in ROLES_SOLO_ADMIN
+
+
+def _validar_cambio_rol(actor_rol: str, rol_objetivo: str) -> None:
+    """Un BIBLIOTECARIO no puede crear/asignar BIBLIOTECARIO ni ADMIN.
+
+    Un LECTOR/PROFESOR nunca llega aquí (no puede cambiar roles, lo fuerza
+    `update`); un ADMIN pasa sin restricción.
+    """
+    if actor_rol == "BIBLIOTECARIO" and _es_rol_superior(rol_objetivo):
+        raise BusinessRuleError(UsuarioMessages.ROL_SUPERIOR_BLOQUEADO)
+
+
+def _validar_objetivo_protegido(target_rol: str, actor_rol: str) -> None:
+    """Un usuario con rol ADMIN solo puede ser tocado por otro ADMIN."""
+    if target_rol == "ADMIN" and actor_rol != "ADMIN":
+        raise BusinessRuleError(UsuarioMessages.SOLO_ADMIN_GESTIONA_ADMIN)
 
 
 class UsuarioService(BaseService[Usuario]):
@@ -32,11 +54,18 @@ class UsuarioService(BaseService[Usuario]):
         rol = data.get("rol")
         if not nombre or not email or not rol:
             raise ValidationError(UsuarioMessages.UPDATE_CAMPOS_REQUERIDOS)
+        if rol not in ROLES_VALIDOS:
+            raise ValidationError(UsuarioMessages.ROL_INVALIDO)
 
-        # SEGURIDAD: solo BIBLIOTECARIO puede cambiar el rol de un usuario;
-        # un LECTOR editando su propio perfil no puede auto-promoverse.
-        if requesting_user.rol != "BIBLIOTECARIO":
+        _validar_objetivo_protegido(usuario.rol, requesting_user.rol)
+
+        # SEGURIDAD: solo BIBLIOTECARIO/ADMIN puede cambiar el rol de otro
+        # usuario; un LECTOR/PROFESOR editando su propio perfil no puede
+        # auto-promoverse. Y un BIBLIOTECARIO no puede asignar roles superiores.
+        if requesting_user.rol in ("LECTOR", "PROFESOR"):
             rol = usuario.rol
+        else:
+            _validar_cambio_rol(requesting_user.rol, rol)
 
         usuario.nombre = nombre
         usuario.email = email
@@ -46,15 +75,18 @@ class UsuarioService(BaseService[Usuario]):
 
         return {"success": True, "message": "Usuario actualizado exitosamente"}
 
-    def delete(self, id_usuario: int, actor: str) -> dict:
+    def delete(self, id_usuario: int, requesting_user) -> dict:
+        usuario = self.get_by_id(id_usuario)
+        _validar_objetivo_protegido(usuario.rol, requesting_user.rol)
+
         if self.repository.count_active_prestamos(id_usuario) > 0:
             raise BusinessRuleError(UsuarioMessages.TIENE_PRESTAMOS_ACTIVOS)
 
-        self.delete_entity(id_usuario, actor=actor)
-        logger.info(f"Usuario {id_usuario} eliminado (soft-delete) por {actor}")
+        self.delete_entity(id_usuario, actor=requesting_user.email)
+        logger.info(f"Usuario {id_usuario} eliminado (soft-delete) por {requesting_user.email}")
         return {"success": True, "message": "Usuario eliminado exitosamente"}
 
-    def create_admin(self, data: dict, actor: str) -> dict:
+    def create_admin(self, data: dict, requesting_user) -> dict:
         nombre = data.get("nombre")
         email = data.get("email")
         password = data.get("password")
@@ -66,6 +98,8 @@ class UsuarioService(BaseService[Usuario]):
             raise ValidationError(UsuarioMessages.ROL_INVALIDO)
         _validar_longitud_password(password)
 
+        _validar_cambio_rol(requesting_user.rol, rol)
+
         if self.repository.get_by_email(email):
             logger.warning(f"Intento de crear usuario con email duplicado: {email}")
             raise ValidationError(UsuarioMessages.EMAIL_DUPLICADO)
@@ -76,22 +110,26 @@ class UsuarioService(BaseService[Usuario]):
             password=hash_password(password),
             rol=rol,
         )
-        self.repository.add(usuario, actor=actor)
+        self.repository.add(usuario, actor=requesting_user.email)
 
-        logger.info(f"Nuevo usuario creado por {actor}: {email} con rol {rol}")
+        logger.info(
+            f"Nuevo usuario creado por {requesting_user.email}: {email} con rol {rol}"
+        )
         return {"success": True, "message": f"Usuario creado exitosamente como {rol}"}
 
-    def toggle_estado(self, id_usuario: int, activo, actor: str) -> dict:
+    def toggle_estado(self, id_usuario: int, activo, requesting_user) -> dict:
         if activo not in ("S", "N"):
             raise ValidationError(UsuarioMessages.ESTADO_INVALIDO)
 
         usuario = self.get_by_id(id_usuario)
+        _validar_objetivo_protegido(usuario.rol, requesting_user.rol)
+
         usuario.activo = activo
-        self.repository.mark_updated(usuario, actor=actor)
+        self.repository.mark_updated(usuario, actor=requesting_user.email)
         self.repository.flush()
 
         estado_texto = "activado" if activo == "S" else "desactivado"
-        logger.info(f"Usuario {id_usuario} {estado_texto} por {actor}")
+        logger.info(f"Usuario {id_usuario} {estado_texto} por {requesting_user.email}")
         return {"success": True, "message": f"Usuario {estado_texto} exitosamente"}
 
 

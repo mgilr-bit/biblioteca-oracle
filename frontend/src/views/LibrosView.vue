@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
 import { librosAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
+import { useCan } from '../composables/useCan'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
 
-const auth = useAuthStore()
+const can = useCan()
 const toast = useToast()
 const { ask } = useConfirm()
 
@@ -169,9 +169,9 @@ onMounted(() => {
   <div class="stack">
     <div class="page-header">
       <h2>Gestión de libros</h2>
-      <div class="cluster" v-if="auth.isBibliotecario">
-        <button class="btn btn-outline" @click="exportarCSV">Exportar CSV</button>
-        <button class="btn btn-primary" @click="openCreate">+ Nuevo libro</button>
+      <div class="cluster">
+        <button v-can:read="'Libro'" class="btn btn-outline" @click="exportarCSV">Exportar CSV</button>
+        <button v-can:create="'Libro'" class="btn btn-primary" @click="openCreate">+ Nuevo libro</button>
       </div>
     </div>
 
@@ -222,11 +222,11 @@ onMounted(() => {
                 </span>
               </td>
               <td>
-                <div v-if="auth.isBibliotecario" class="cluster">
-                  <button class="btn btn-outline btn-sm btn-icon" title="Editar" @click="openEdit(libro)">✎</button>
-                  <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" @click="deleteLibro(libro)">🗑</button>
+                <div class="cluster">
+                  <button v-can:update="'Libro'" class="btn btn-outline btn-sm btn-icon" title="Editar" @click="openEdit(libro)">✎</button>
+                  <button v-can:delete="'Libro'" class="btn btn-danger btn-sm btn-icon" title="Eliminar" @click="deleteLibro(libro)">🗑</button>
                 </div>
-                <span v-else class="text-muted" style="font-size:0.8rem">Solo lectura</span>
+                <span v-if="!can('update', 'Libro') && !can('delete', 'Libro')" class="text-muted" style="font-size:0.8rem">Solo lectura</span>
               </td>
             </tr>
             <tr v-if="!loading && !paginatedLibros.length">
