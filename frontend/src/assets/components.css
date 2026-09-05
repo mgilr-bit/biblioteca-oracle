@@ -231,6 +231,12 @@
   color: var(--ink);
 }
 
+.select-sm {
+  width: auto;
+  font-size: 0.78rem;
+  padding: 0.28rem 0.45rem;
+}
+
 .input:focus, .select:focus {
   outline: none;
   border-color: var(--accent);

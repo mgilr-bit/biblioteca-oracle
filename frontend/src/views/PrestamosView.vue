@@ -231,6 +231,7 @@ onMounted(() => loadTab("todos"));
               <th>Libro</th>
               <th>Autor</th>
               <th v-can:manage="'Prestamo'">Usuario</th>
+              <th>Ejemplar</th>
               <th>Préstamo</th>
               <th>Devolución</th>
               <th>Estado</th>
@@ -243,6 +244,7 @@ onMounted(() => loadTab("todos"));
               <td>{{ p.TITULO }}</td>
               <td>{{ p.AUTOR || "-" }}</td>
               <td v-can:manage="'Prestamo'">{{ p.NOMBRE_USUARIO || "" }}</td>
+              <td class="cell-mono">{{ p.CODIGO_EJEMPLAR || "-" }}</td>
               <td>{{ new Date(p.FECHA_PRESTAMO).toLocaleDateString() }}</td>
               <td>
                 {{ new Date(p.FECHA_DEVOLUCION_ESPERADA).toLocaleDateString() }}
@@ -271,7 +273,7 @@ onMounted(() => loadTab("todos"));
               </td>
             </tr>
             <tr v-if="!loading && !filteredPrestamos.length">
-              <td :colspan="can('manage', 'Prestamo') ? 8 : 7" class="cell-empty">
+              <td :colspan="can('manage', 'Prestamo') ? 9 : 8" class="cell-empty">
                 No hay préstamos
               </td>
             </tr>

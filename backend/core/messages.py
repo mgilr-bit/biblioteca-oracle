@@ -45,6 +45,16 @@ class EditorialMessages:
     NOMBRE_DUPLICADO = "Ya existe una editorial con ese nombre"
 
 
+class EjemplarMessages:
+    NOT_FOUND = "Ejemplar no encontrado"
+    ID_LIBRO_REQUERIDO = "id_libro es requerido"
+    LIBRO_NO_EXISTE = "El libro no existe"
+    CODIGO_DUPLICADO = "Ya existe un ejemplar con ese código"
+    ESTADO_INVALIDO = "Estado inválido. Debe ser uno de: {estados}"
+    NO_CAMBIAR_PRESTADO = "Un ejemplar prestado no puede cambiar de estado manualmente; regístrelo como devuelto primero"
+    NO_BORRAR_PRESTADO = "No se puede eliminar un ejemplar prestado; devuélvalo primero"
+
+
 class PrestamoMessages:
     NOT_FOUND = "Préstamo no encontrado"
     YA_DEVUELTO = "El préstamo ya fue devuelto"

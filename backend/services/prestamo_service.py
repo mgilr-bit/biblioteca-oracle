@@ -8,6 +8,7 @@ from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
 from services.base import BaseService
+from services.ejemplar_service import EjemplarService
 from services.exceptions import BusinessRuleError, ValidationError
 
 DIAS_PRESTAMO_DEFAULT = 14
@@ -19,6 +20,7 @@ class PrestamoService(BaseService[Prestamo]):
     def __init__(self, session):
         super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
+        self.ejemplar_service = EjemplarService(session)
 
     def _calcular_estado(self, prestamo: Prestamo) -> str:
         if (
@@ -35,6 +37,8 @@ class PrestamoService(BaseService[Prestamo]):
             id_prestamo=prestamo.id_prestamo,
             id_libro=prestamo.id_libro,
             id_usuario=prestamo.id_usuario,
+            id_ejemplar=prestamo.id_ejemplar,
+            codigo_ejemplar=row[4] if len(row) > 4 else None,
             fecha_prestamo=prestamo.fecha_prestamo,
             fecha_devolucion_esperada=prestamo.fecha_devolucion_esperada,
             fecha_devolucion_real=prestamo.fecha_devolucion_real,
@@ -87,6 +91,12 @@ class PrestamoService(BaseService[Prestamo]):
         )
         self.repository.add(prestamo, actor=requesting_user.email)
 
+        # Fase 2: asocia la copia física disponible al préstamo (si hay ejemplares).
+        ejemplar = self.ejemplar_service.asignar_a_prestamo(id_libro)
+        if ejemplar:
+            prestamo.id_ejemplar = ejemplar.id_ejemplar
+            self.repository.flush()
+
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
     def devolver(self, id_prestamo: int, actor: str) -> dict:
@@ -98,5 +108,8 @@ class PrestamoService(BaseService[Prestamo]):
         prestamo.fecha_devolucion_real = datetime.now()
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
+
+        if prestamo.id_ejemplar:
+            self.ejemplar_service.liberar(prestamo.id_ejemplar)
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

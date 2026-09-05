@@ -12,6 +12,8 @@ class PrestamoResponse(BaseModel):
     id_prestamo: int = Field(alias="ID_PRESTAMO")
     id_libro: int = Field(alias="ID_LIBRO")
     id_usuario: int = Field(alias="ID_USUARIO")
+    id_ejemplar: Optional[int] = Field(default=None, alias="ID_EJEMPLAR")
+    codigo_ejemplar: Optional[str] = Field(default=None, alias="CODIGO_EJEMPLAR")
     fecha_prestamo: Optional[datetime] = Field(default=None, alias="FECHA_PRESTAMO")
     fecha_devolucion_esperada: Optional[datetime] = Field(default=None, alias="FECHA_DEVOLUCION_ESPERADA")
     fecha_devolucion_real: Optional[datetime] = Field(default=None, alias="FECHA_DEVOLUCION_REAL")

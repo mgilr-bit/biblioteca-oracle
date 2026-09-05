@@ -29,6 +29,9 @@ async function logout() {
         <router-link v-can:read="'Editorial'" to="/editoriales" class="app-nav__link" active-class="is-active">
           Editoriales
         </router-link>
+        <router-link v-can:read="'Ejemplar'" to="/ejemplares" class="app-nav__link" active-class="is-active">
+          Ejemplares
+        </router-link>
         <router-link to="/prestamos" class="app-nav__link" active-class="is-active">
           Préstamos
         </router-link>

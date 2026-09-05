@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlmodel import Session, select
 
+from models.ejemplar import Ejemplar
 from models.libro import Libro
 from models.prestamo import Prestamo
 from models.usuario import Usuario
@@ -15,9 +16,10 @@ class PrestamoRepository(BaseRepository[Prestamo]):
 
     def _query_with_details(self):
         return (
-            select(Prestamo, Libro.titulo, Libro.autor, Usuario.nombre)
+            select(Prestamo, Libro.titulo, Libro.autor, Usuario.nombre, Ejemplar.codigo_ejemplar)
             .join(Libro, Prestamo.id_libro == Libro.id_libro)
             .join(Usuario, Prestamo.id_usuario == Usuario.id_usuario)
+            .outerjoin(Ejemplar, Prestamo.id_ejemplar == Ejemplar.id_ejemplar)
             .where(Prestamo.is_deleted == False)  # noqa: E712
         )
 

@@ -21,6 +21,7 @@ from core.security_headers import security_headers_middleware
 from routers import (
     auth_router,
     editorial_router,
+    ejemplar_router,
     libro_router,
     prestamo_router,
     usuario_router,
@@ -109,6 +110,7 @@ app.include_router(libro_router, prefix="/api/libros")
 app.include_router(usuario_router, prefix="/api/usuarios")
 app.include_router(prestamo_router, prefix="/api/prestamos")
 app.include_router(editorial_router, prefix="/api/editoriales")
+app.include_router(ejemplar_router, prefix="/api/ejemplares")
 
 
 @app.get("/")
@@ -122,6 +124,7 @@ def home():
             "usuarios": "/api/usuarios",
             "prestamos": "/api/prestamos",
             "editoriales": "/api/editoriales",
+            "ejemplares": "/api/ejemplares",
         },
     }
 

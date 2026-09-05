@@ -24,6 +24,23 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const ejemplaresAPI = {
+  getAll: async (page = 1, perPage = 100, filters = {}) => {
+    const params = new URLSearchParams({ page, per_page: perPage })
+    if (filters.id_libro) params.append('id_libro', filters.id_libro)
+    if (filters.estado) params.append('estado', filters.estado)
+    const data = await http.get(`/ejemplares/?${params.toString()}`)
+    return data.ejemplares !== undefined ? data : { ejemplares: data, total: data.length }
+  },
+  getEstados: () => http.get('/ejemplares/estados'),
+  getPorLibro: (idLibro) => http.get(`/ejemplares/por-libro/${idLibro}`),
+  getById: (id) => http.get(`/ejemplares/${id}`),
+  create: (ejemplar) => http.post('/ejemplares/', ejemplar),
+  update: (id, ejemplar) => http.put(`/ejemplares/${id}`, ejemplar),
+  changeEstado: (id, estado) => http.put(`/ejemplares/${id}/estado`, { estado }),
+  delete: (id) => http.delete(`/ejemplares/${id}`)
+}
+
 export const editorialesAPI = {
   getAll: async (page = 1, perPage = 100) => {
     const data = await http.get(`/editoriales/?page=${page}&per_page=${perPage}`)

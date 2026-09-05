@@ -17,6 +17,7 @@ class Prestamo(AuditMixin, table=True):
     )
     id_libro: int = Field(foreign_key="libros.id_libro", index=True)
     id_usuario: int = Field(foreign_key="usuarios.id_usuario", index=True)
+    id_ejemplar: Optional[int] = Field(default=None, foreign_key="ejemplares.id_ejemplar", index=True)
     fecha_prestamo: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("SYSDATE")}
     )
