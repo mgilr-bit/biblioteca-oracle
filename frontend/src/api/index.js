@@ -24,6 +24,18 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const editorialesAPI = {
+  getAll: async (page = 1, perPage = 100) => {
+    const data = await http.get(`/editoriales/?page=${page}&per_page=${perPage}`)
+    return data.editoriales !== undefined ? data : { editoriales: data, total: data.length }
+  },
+  getTodas: () => http.get('/editoriales/todas'),
+  getById: (id) => http.get(`/editoriales/${id}`),
+  create: (editorial) => http.post('/editoriales/', editorial),
+  update: (id, editorial) => http.put(`/editoriales/${id}`, editorial),
+  delete: (id) => http.delete(`/editoriales/${id}`)
+}
+
 export const prestamosAPI = {
   getAll: () => http.get('/prestamos/'),
   getActivos: () => http.get('/prestamos/activos'),

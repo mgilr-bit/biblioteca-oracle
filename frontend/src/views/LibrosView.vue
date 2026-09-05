@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { librosAPI } from '../api'
+import { librosAPI, editorialesAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import { useCan } from '../composables/useCan'
@@ -13,6 +13,7 @@ const { ask } = useConfirm()
 
 const allLibros = ref([])
 const generos = ref([])
+const editoriales = ref([])
 const currentPage = ref(1)
 const perPage = 50
 const loading = ref(true)
@@ -30,6 +31,14 @@ async function loadGeneros() {
     generos.value = await librosAPI.getGeneros()
   } catch (error) {
     console.error('Error cargando géneros:', error)
+  }
+}
+
+async function loadEditoriales() {
+  try {
+    editoriales.value = await editorialesAPI.getTodas()
+  } catch (error) {
+    console.error('Error cargando editoriales:', error)
   }
 }
 
@@ -161,6 +170,7 @@ async function exportarCSV() {
 
 onMounted(() => {
   loadGeneros()
+  loadEditoriales()
   loadLibros()
 })
 </script>
@@ -271,7 +281,10 @@ onMounted(() => {
         </div>
         <div class="field">
           <label for="editorial">Editorial</label>
-          <input id="editorial" v-model="form.editorial" class="input" />
+          <input id="editorial" v-model="form.editorial" class="input" list="editoriales-list" />
+          <datalist id="editoriales-list">
+            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.NOMBRE" />
+          </datalist>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="copias">Número de copias</label>

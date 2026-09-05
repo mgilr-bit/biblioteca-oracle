@@ -39,6 +39,12 @@ class LibroMessages:
     COPIAS_REQUERIDO = "copias_disponibles es requerido"
 
 
+class EditorialMessages:
+    NOT_FOUND = "Editorial no encontrada"
+    NOMBRE_REQUERIDO = "El nombre de la editorial es requerido"
+    NOMBRE_DUPLICADO = "Ya existe una editorial con ese nombre"
+
+
 class PrestamoMessages:
     NOT_FOUND = "Préstamo no encontrado"
     YA_DEVUELTO = "El préstamo ya fue devuelto"

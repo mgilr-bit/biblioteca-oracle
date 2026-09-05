@@ -73,6 +73,7 @@ class LibroService(BaseService[Libro]):
             genero=data.get("genero"),
             numero_copias=numero_copias,
             copias_disponibles=numero_copias,
+            id_editorial=data.get("id_editorial"),
             editorial=data.get("editorial"),
         )
         self.repository.add(libro, actor=actor)
@@ -104,6 +105,7 @@ class LibroService(BaseService[Libro]):
         libro.genero = data.get("genero")
         libro.numero_copias = nuevas_copias
         libro.copias_disponibles = nuevas_disponibles
+        libro.id_editorial = data.get("id_editorial")
         libro.editorial = data.get("editorial")
         self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()

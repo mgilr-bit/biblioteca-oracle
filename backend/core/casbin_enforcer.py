@@ -72,6 +72,13 @@ DEFAULT_POLICIES = [
     ("LECTOR", "Prestamo", "create", "false"),
     ("PROFESOR", "Prestamo", "read", "true"),
     ("PROFESOR", "Prestamo", "create", "false"),
+    # Editoriales: catálogo legible para todos, gestionable solo por BIBLIOTECARIO/ADMIN.
+    ("BIBLIOTECARIO", "Editorial", "read", "false"),
+    ("BIBLIOTECARIO", "Editorial", "create", "false"),
+    ("BIBLIOTECARIO", "Editorial", "update", "false"),
+    ("BIBLIOTECARIO", "Editorial", "delete", "false"),
+    ("LECTOR", "Editorial", "read", "false"),
+    ("PROFESOR", "Editorial", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

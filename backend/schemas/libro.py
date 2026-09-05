@@ -17,6 +17,7 @@ class LibroResponse(BaseModel):
     numero_copias: int = Field(alias="NUMERO_COPIAS")
     copias_disponibles: int = Field(alias="COPIAS_DISPONIBLES")
     fecha_registro: Optional[datetime] = Field(default=None, alias="FECHA_REGISTRO")
+    id_editorial: Optional[int] = Field(default=None, alias="ID_EDITORIAL")
     editorial: Optional[str] = Field(default=None, alias="EDITORIAL")
 
 
@@ -35,6 +36,7 @@ class LibroCreate(BaseModel):
     anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
     genero: Optional[str] = Field(default=None, max_length=50)
     numero_copias: int = Field(default=1, ge=0, le=10_000)
+    id_editorial: Optional[int] = Field(default=None)
     editorial: Optional[str] = Field(default=None, max_length=100)
 
 
@@ -45,6 +47,7 @@ class LibroUpdate(BaseModel):
     anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
     genero: Optional[str] = Field(default=None, max_length=50)
     numero_copias: Optional[int] = Field(default=None, ge=0, le=10_000)
+    id_editorial: Optional[int] = Field(default=None)
     editorial: Optional[str] = Field(default=None, max_length=100)
 
 
