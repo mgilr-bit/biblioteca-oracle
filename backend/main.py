@@ -23,6 +23,7 @@ from routers import (
     editorial_router,
     ejemplar_router,
     libro_router,
+    multa_router,
     notificacion_router,
     prestamo_router,
     reserva_router,
@@ -115,6 +116,7 @@ app.include_router(editorial_router, prefix="/api/editoriales")
 app.include_router(ejemplar_router, prefix="/api/ejemplares")
 app.include_router(reserva_router, prefix="/api/reservas")
 app.include_router(notificacion_router, prefix="/api/notificaciones")
+app.include_router(multa_router, prefix="/api/multas")
 
 
 @app.get("/")

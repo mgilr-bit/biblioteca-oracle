@@ -68,6 +68,14 @@ export const editorialesAPI = {
   delete: (id) => http.delete(`/editoriales/${id}`)
 }
 
+export const multasAPI = {
+  getAll: () => http.get('/multas/'),
+  getPendientes: () => http.get('/multas/pendientes'),
+  getByUsuario: (idUsuario) => http.get(`/multas/usuario/${idUsuario}`),
+  pagar: (id) => http.put(`/multas/${id}/pagar`),
+  condonar: (id) => http.put(`/multas/${id}/condonar`)
+}
+
 export const prestamosAPI = {
   getAll: () => http.get('/prestamos/'),
   getActivos: () => http.get('/prestamos/activos'),

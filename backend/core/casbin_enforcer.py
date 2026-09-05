@@ -104,6 +104,12 @@ DEFAULT_POLICIES = [
     ("LECTOR", "Notificacion", "update", "true"),
     ("PROFESOR", "Notificacion", "read", "true"),
     ("PROFESOR", "Notificacion", "update", "true"),
+    # Multas: BIBLIOTECARIO lee/gestiona todas (cobrar/condonar); LECTOR y
+    # PROFESOR solo ven las suyas (owner_only), sin acciones de gestión.
+    ("BIBLIOTECARIO", "Multa", "read", "false"),
+    ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
+    ("LECTOR", "Multa", "read", "true"),
+    ("PROFESOR", "Multa", "read", "true"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
