@@ -12,13 +12,22 @@ export function buildAbilityFor(user) {
     return build()
   }
 
-  if (user.rol === 'BIBLIOTECARIO') {
+  // ADMIN y BIBLIOTECARIO: acceso total. La diferencia de jerarquía
+  // (un BIBLIOTECARIO no puede gestionar a un ADMIN) se aplica en el
+  // backend; aquí solo se usa para mostrar/ocultar UI.
+  if (user.rol === 'ADMIN' || user.rol === 'BIBLIOTECARIO') {
     can('manage', 'all')
   } else {
+    // PROFESOR comparte exactamente el mismo alcance que LECTOR por
+    // decisión de producto (2026-09-05): perfil, préstamos propios, lectura.
     can('read', 'Libro')
     can(['create', 'read'], 'Prestamo', { id_usuario: user.id })
     can('read', 'Multa', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
+    can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })
+    can('read', 'Editorial')
+    can('read', 'Ejemplar')
+    can('read', 'Multa')
   }
 
   return build()

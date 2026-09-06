@@ -24,17 +24,54 @@ class UsuarioMessages:
     ADMIN_CAMPOS_REQUERIDOS = "Nombre, email, contraseña y rol son requeridos"
     UPDATE_CAMPOS_REQUERIDOS = "Nombre, email y rol son requeridos"
     EMAIL_DUPLICADO = "El email ya está registrado"
-    ROL_INVALIDO = "Rol inválido. Debe ser LECTOR o BIBLIOTECARIO"
+    ROL_INVALIDO = "Rol inválido. Debe ser LECTOR, PROFESOR, BIBLIOTECARIO o ADMIN"
     PASSWORD_MUY_CORTA = "La contraseña debe tener al menos 8 caracteres"
     PASSWORD_MUY_LARGA = "La contraseña no puede superar los 72 caracteres"
     ESTADO_INVALIDO = "Estado inválido. Debe ser 'S' o 'N'"
     TIENE_PRESTAMOS_ACTIVOS = "No se puede eliminar el usuario. Tiene préstamos activos."
+    SOLO_ADMIN_GESTIONA_ADMIN = "Solo un ADMIN del sistema puede gestionar usuarios con rol ADMIN"
+    ROL_SUPERIOR_BLOQUEADO = "No puede crear o asignar un rol que no puede gestionar (BIBLIOTECARIO o ADMIN)"
 
 
 class LibroMessages:
     NOT_FOUND = "Libro no encontrado"
     CAMPOS_REQUERIDOS = "Los campos titulo y autor son requeridos"
     COPIAS_REQUERIDO = "copias_disponibles es requerido"
+
+
+class EditorialMessages:
+    NOT_FOUND = "Editorial no encontrada"
+    NOMBRE_REQUERIDO = "El nombre de la editorial es requerido"
+    NOMBRE_DUPLICADO = "Ya existe una editorial con ese nombre"
+
+
+class EjemplarMessages:
+    NOT_FOUND = "Ejemplar no encontrado"
+    ID_LIBRO_REQUERIDO = "id_libro es requerido"
+    LIBRO_NO_EXISTE = "El libro no existe"
+    CODIGO_DUPLICADO = "Ya existe un ejemplar con ese código"
+    ESTADO_INVALIDO = "Estado inválido. Debe ser uno de: {estados}"
+    NO_CAMBIAR_PRESTADO = "Un ejemplar prestado no puede cambiar de estado manualmente; regístrelo como devuelto primero"
+    NO_BORRAR_PRESTADO = "No se puede eliminar un ejemplar prestado; devuélvalo primero"
+
+
+class ReservaMessages:
+    NOT_FOUND = "Reserva no encontrada"
+    CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
+    ID_USUARIO_REQUERIDO = "id_usuario es requerido"
+    LIBRO_NO_EXISTE = "El libro no existe"
+    MAX_RESERVAS = "Límite de {max} reservas simultáneas alcanzado"
+    RESERVA_DUPLICADA = "Ya tiene una reserva activa para este libro"
+    NO_CANCELABLE = "Solo se pueden cancelar reservas activas"
+
+
+class NotificacionMessages:
+    NOT_FOUND = "Notificación no encontrada"
+    RECORDATORIO_HOY = "Su préstamo #{id} vence HOY. Devuélvalo a tiempo para evitar multas."
+    RECORDATORIO_3D = "El préstamo #{id} vence en 3 días. Recuerde devolverlo a tiempo."
+    VENCIDO = "Su préstamo #{id} lleva {dias} día(s) de retraso. Devuélvalo para evitar una multa."
+    RESERVA_DISPONIBLE = "Una copia de su libro reservado está disponible. Recójala en la biblioteca ({dias} días)."
+    MULTA_GENERADA = "Se generó una multa de Q{monto} por el préstamo #{id}. Regularice su estado."
 
 
 class PrestamoMessages:

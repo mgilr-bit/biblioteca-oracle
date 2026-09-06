@@ -41,3 +41,18 @@ def require_permission_owned(subject: str, act: str, owner_param: str):
         return user
 
     return dependency
+
+
+def require_permission_session_owned(subject: str, act: str):
+    """Gate RBAC + ABAC para recursos cuyo "dueño" es el propio usuario en
+    sesión (no un path param): notificaciones propias, sesión, perfil, etc.
+    `owner_id` se toma de `user.id`, así un rol con owner_only=true solo
+    opera consigo mismo y un rol sin restricción (BIBLIOTECARIO/ADMIN) con
+    cualquiera."""
+
+    def dependency(user: SessionUser = Depends(get_current_user)) -> SessionUser:
+        if not _enforce(user, subject, act, owner_id=user.id):
+            raise HTTPException(status_code=403, detail=AuthMessages.SIN_PERMISOS)
+        return user
+
+    return dependency

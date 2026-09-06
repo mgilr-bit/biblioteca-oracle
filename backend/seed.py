@@ -20,6 +20,8 @@ from utils.security import hash_password
 
 USUARIOS = [
     ("Admin Biblioteca", "admin@biblioteca.com", "admin123", "BIBLIOTECARIO"),
+    ("Admin Sistema", "admin@sistema.com", "admin123", "ADMIN"),
+    ("Prof. Ana Ruiz", "ana@biblioteca.com", "lector123", "PROFESOR"),
     ("Juan Perez", "juan@email.com", "lector123", "LECTOR"),
     ("Maria Garcia", "maria@email.com", "lector123", "LECTOR"),
 ]

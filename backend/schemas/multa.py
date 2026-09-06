@@ -1,6 +1,5 @@
-"""DTOs del recurso Multa. La respuesta se arma a mano en el service porque
-sale de un join (Multa + Prestamo + Libro + Usuario), no de una sola
-entidad ORM."""
+"""DTOs del recurso Multa. La respuesta sale de un join (Multa + Prestamo +
+Libro + Usuario) armado en el service/repository."""
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -22,3 +21,8 @@ class MultaResponse(BaseModel):
     fecha_pago: Optional[datetime] = Field(default=None, alias="FECHA_PAGO")
     titulo: str = Field(alias="TITULO")
     nombre_usuario: str = Field(alias="NOMBRE_USUARIO")
+
+
+class MultaPagarResponse(BaseModel):
+    success: bool
+    message: str

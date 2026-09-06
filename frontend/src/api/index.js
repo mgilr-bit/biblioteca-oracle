@@ -24,6 +24,58 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const notificacionesAPI = {
+  getAll: () => http.get('/notificaciones/'),
+  getNoLeidas: () => http.get('/notificaciones/no-leidas/count'),
+  marcarLeida: (id) => http.put(`/notificaciones/${id}/leida`),
+  marcarTodasLeidas: () => http.put('/notificaciones/marcar-todas-leidas')
+}
+
+export const reservasAPI = {
+  getAll: () => http.get('/reservas/'),
+  getByUsuario: (idUsuario) => http.get(`/reservas/usuario/${idUsuario}`),
+  getCola: (idLibro) => http.get(`/reservas/cola/${idLibro}`),
+  create: (reserva) => http.post('/reservas/', reserva),
+  cancelar: (id) => http.put(`/reservas/${id}/cancelar`)
+}
+
+export const ejemplaresAPI = {
+  getAll: async (page = 1, perPage = 100, filters = {}) => {
+    const params = new URLSearchParams({ page, per_page: perPage })
+    if (filters.id_libro) params.append('id_libro', filters.id_libro)
+    if (filters.estado) params.append('estado', filters.estado)
+    const data = await http.get(`/ejemplares/?${params.toString()}`)
+    return data.ejemplares !== undefined ? data : { ejemplares: data, total: data.length }
+  },
+  getEstados: () => http.get('/ejemplares/estados'),
+  getPorLibro: (idLibro) => http.get(`/ejemplares/por-libro/${idLibro}`),
+  getById: (id) => http.get(`/ejemplares/${id}`),
+  create: (ejemplar) => http.post('/ejemplares/', ejemplar),
+  update: (id, ejemplar) => http.put(`/ejemplares/${id}`, ejemplar),
+  changeEstado: (id, estado) => http.put(`/ejemplares/${id}/estado`, { estado }),
+  delete: (id) => http.delete(`/ejemplares/${id}`)
+}
+
+export const editorialesAPI = {
+  getAll: async (page = 1, perPage = 100) => {
+    const data = await http.get(`/editoriales/?page=${page}&per_page=${perPage}`)
+    return data.editoriales !== undefined ? data : { editoriales: data, total: data.length }
+  },
+  getTodas: () => http.get('/editoriales/todas'),
+  getById: (id) => http.get(`/editoriales/${id}`),
+  create: (editorial) => http.post('/editoriales/', editorial),
+  update: (id, editorial) => http.put(`/editoriales/${id}`, editorial),
+  delete: (id) => http.delete(`/editoriales/${id}`)
+}
+
+export const multasAPI = {
+  getAll: () => http.get('/multas/'),
+  getPendientes: () => http.get('/multas/pendientes'),
+  getByUsuario: (idUsuario) => http.get(`/multas/usuario/${idUsuario}`),
+  pagar: (id) => http.put(`/multas/${id}/pagar`),
+  condonar: (id) => http.put(`/multas/${id}/condonar`)
+}
+
 export const prestamosAPI = {
   getAll: () => http.get('/prestamos/'),
   getActivos: () => http.get('/prestamos/activos'),
@@ -33,12 +85,20 @@ export const prestamosAPI = {
   devolver: (id) => http.put(`/prestamos/${id}/devolver`)
 }
 
-export const multasAPI = {
-  getAll: () => http.get('/multas/'),
-  getPendientes: () => http.get('/multas/pendientes'),
-  getByUsuario: (idUsuario) => http.get(`/multas/usuario/${idUsuario}`),
-  pagar: (id) => http.put(`/multas/${id}/pagar`),
-  condonar: (id) => http.put(`/multas/${id}/condonar`)
+export const auditoriaAPI = {
+  getAll: async (page = 1, perPage = 50, filters = {}) => {
+    const params = new URLSearchParams({ page, per_page: perPage })
+    if (filters.accion) params.append('accion', filters.accion)
+    if (filters.recurso) params.append('recurso', filters.recurso)
+    if (filters.id_usuario) params.append('id_usuario', filters.id_usuario)
+    return http.get(`/auditoria/?${params.toString()}`)
+  },
+  getAcciones: () => http.get('/auditoria/acciones'),
+  getRecursos: () => http.get('/auditoria/recursos')
+}
+
+export const analiticaAPI = {
+  getResumen: () => http.get('/dashboard/olap')
 }
 
 export const usuariosAPI = {

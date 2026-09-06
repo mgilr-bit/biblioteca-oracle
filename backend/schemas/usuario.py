@@ -20,13 +20,13 @@ class UsuarioAdminCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(min_length=8, max_length=72)
-    rol: Literal["LECTOR", "BIBLIOTECARIO"]
+    rol: Literal["LECTOR", "PROFESOR", "BIBLIOTECARIO", "ADMIN"]
 
 
 class UsuarioUpdate(BaseModel):
     nombre: str = Field(min_length=1, max_length=100)
     email: EmailStr
-    rol: Literal["LECTOR", "BIBLIOTECARIO"]
+    rol: Literal["LECTOR", "PROFESOR", "BIBLIOTECARIO", "ADMIN"]
 
 
 class UsuarioEstadoUpdate(BaseModel):

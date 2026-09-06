@@ -1,8 +1,9 @@
 """Repositorio de acceso a datos para la entidad Prestamo."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlmodel import Session, select
 
+from models.ejemplar import Ejemplar
 from models.libro import Libro
 from models.prestamo import Prestamo
 from models.usuario import Usuario
@@ -15,9 +16,10 @@ class PrestamoRepository(BaseRepository[Prestamo]):
 
     def _query_with_details(self):
         return (
-            select(Prestamo, Libro.titulo, Libro.autor, Usuario.nombre)
+            select(Prestamo, Libro.titulo, Libro.autor, Usuario.nombre, Ejemplar.codigo_ejemplar)
             .join(Libro, Prestamo.id_libro == Libro.id_libro)
             .join(Usuario, Prestamo.id_usuario == Usuario.id_usuario)
+            .outerjoin(Ejemplar, Prestamo.id_ejemplar == Ejemplar.id_ejemplar)
             .where(Prestamo.is_deleted == False)  # noqa: E712
         )
 
@@ -44,6 +46,34 @@ class PrestamoRepository(BaseRepository[Prestamo]):
     def get_vencidos_with_details(self) -> list:
         stmt = (
             self._query_with_details()
+            .where(
+                Prestamo.estado == "ACTIVO",
+                Prestamo.fecha_devolucion_esperada < datetime.now(),
+            )
+            .order_by(Prestamo.fecha_devolucion_esperada)
+        )
+        return list(self.session.execute(stmt).all())
+
+    def get_activos_por_vencer_raw(self, dias: int) -> list:
+        """Préstamos ACTIVO cuya devolución cae dentro de `dias` días (para
+        el job de recordatorios). Devuelve tuplas (id_prestamo, id_usuario,
+        fecha_devolucion_esperada)."""
+        corte = datetime.now() + timedelta(days=dias)
+        stmt = (
+            select(Prestamo.id_prestamo, Prestamo.id_usuario, Prestamo.fecha_devolucion_esperada)
+            .where(
+                Prestamo.estado == "ACTIVO",
+                Prestamo.fecha_devolucion_esperada >= datetime.now(),
+                Prestamo.fecha_devolucion_esperada <= corte,
+            )
+            .order_by(Prestamo.fecha_devolucion_esperada)
+        )
+        return list(self.session.execute(stmt).all())
+
+    def get_vencidos_raw(self) -> list:
+        """Préstamos ACTIVO ya vencidos (para el job de avisos)."""
+        stmt = (
+            select(Prestamo.id_prestamo, Prestamo.id_usuario, Prestamo.fecha_devolucion_esperada)
             .where(
                 Prestamo.estado == "ACTIVO",
                 Prestamo.fecha_devolucion_esperada < datetime.now(),

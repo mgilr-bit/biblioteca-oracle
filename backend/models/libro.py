@@ -25,4 +25,5 @@ class Libro(AuditMixin, table=True):
     fecha_registro: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("SYSDATE")}
     )
+    id_editorial: Optional[int] = Field(default=None, foreign_key="editoriales.id_editorial", index=True)
     editorial: Optional[str] = Field(default=None, max_length=100)

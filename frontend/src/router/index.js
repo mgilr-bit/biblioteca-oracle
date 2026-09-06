@@ -18,6 +18,38 @@ const routes = [
     name: 'libros',
     component: () => import('../views/LibrosView.vue')
   },
+{
+    path: '/auditoria',
+    name: 'auditoria',
+    component: () => import('../views/AuditoriaView.vue'),
+    meta: { requiresBibliotecario: true }
+  },
+  {
+    path: '/analitica',
+    name: 'analitica',
+    component: () => import('../views/AnaliticaView.vue'),
+    meta: { requiresBibliotecario: true }
+  },
+  {
+    path: '/ejemplares',
+    name: 'ejemplares',
+    component: () => import('../views/EjemplaresView.vue')
+  },
+  {
+    path: '/reservas',
+    name: 'reservas',
+    component: () => import('../views/ReservasView.vue')
+  },
+  {
+    path: '/notificaciones',
+    name: 'notificaciones',
+    component: () => import('../views/NotificacionesView.vue')
+  },
+  {
+    path: '/multas',
+    name: 'multas',
+    component: () => import('../views/MultasView.vue')
+  },
   {
     path: '/prestamos',
     name: 'prestamos',

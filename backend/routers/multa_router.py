@@ -1,20 +1,14 @@
-"""Router de gestión de multas por devolución tardía.
+"""Router de multas por devolución tardía.
 
-Las multas no se crean vía API: nacen solas al registrar una devolución
-tardía (ver PrestamoService.devolver). Este router solo expone consultas y
-las acciones del bibliotecario para cerrarlas (pagar / condonar).
-
-Autorización: BIBLIOTECARIO ve y gestiona todas; un LECTOR solo puede leer
-las suyas (`GET /usuario/{id}` con chequeo de dueño).
-
-Handlers sync (no `async def`) porque la sesión de BD hace I/O bloqueante
-contra Oracle — FastAPI los corre en threadpool.
+Lectura: BIBLIOTECARIO ve todas; LECTOR/PROFESOR solo las propias
+(owner_only según la política Casbin). Gestión (pagar/condonar) solo
+BIBLIOTECARIO/ADMIN. La multa se genera automáticamente en
+PrestamoService.devolver, aquí no hay creación manual.
 """
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 from core.etag import etag_response
-from core.sessions import SessionUser
 from dependencies.db import get_db_session
 from dependencies.rbac import require_permission, require_permission_owned
 from schemas.common import MessageResponse
@@ -23,27 +17,37 @@ from services.multa_service import MultaService
 
 router = APIRouter()
 
-LIST_ALL = require_permission("Multa", "read")
+READ = require_permission("Multa", "read")
 
 
 @router.get("/", response_model=list[MultaResponse])
-def get_multas(request: Request, session: Session = Depends(get_db_session), user=Depends(LIST_ALL)):
-    return etag_response(request, MultaService(session).get_all())
+def get_multas(
+    request: Request,
+    session: Session = Depends(get_db_session),
+    user=Depends(READ),
+):
+    if user.rol not in ("BIBLIOTECARIO", "ADMIN"):
+        multas = MultaService(session).get_by_usuario(user.id)
+    else:
+        multas = MultaService(session).get_all()
+    return etag_response(request, multas)
 
 
 @router.get("/pendientes", response_model=list[MultaResponse])
 def get_multas_pendientes(
-    request: Request, session: Session = Depends(get_db_session), user=Depends(LIST_ALL)
+    request: Request,
+    session: Session = Depends(get_db_session),
+    user=Depends(require_permission("Multa", "gestionar")),
 ):
     return etag_response(request, MultaService(session).get_pendientes())
 
 
 @router.get("/usuario/{id_usuario}", response_model=list[MultaResponse])
-def get_multas_usuario(
+def get_multas_by_usuario(
     id_usuario: int,
     request: Request,
     session: Session = Depends(get_db_session),
-    user: SessionUser = Depends(require_permission_owned("Multa", "read", "id_usuario")),
+    user=Depends(require_permission_owned("Multa", "read", "id_usuario")),
 ):
     return etag_response(request, MultaService(session).get_by_usuario(id_usuario))
 

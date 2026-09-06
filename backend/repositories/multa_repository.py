@@ -1,6 +1,5 @@
 """Repositorio de acceso a datos para la entidad Multa."""
-from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from models.libro import Libro
 from models.multa import Multa
@@ -42,17 +41,24 @@ class MultaRepository(BaseRepository[Multa]):
         )
         return list(self.session.execute(stmt).all())
 
-    def count_pendientes_by_usuario(self, id_usuario: int) -> int:
+    def get_pendiente_by_prestamo(self, id_prestamo: int) -> Multa | None:
+        stmt = (
+            select(Multa)
+            .where(
+                Multa.id_prestamo == id_prestamo,
+                Multa.estado == "PENDIENTE",
+                Multa.is_deleted == False,  # noqa: E712
+            )
+        )
+        return self.session.exec(stmt).first()
+
+    def usuario_tiene_pendientes(self, id_usuario: int) -> bool:
+        """True si el usuario tiene al menos una multa en PENDIENTE (bloqueo
+        de nuevos préstamos)."""
         stmt = select(func.count(Multa.id_multa)).where(
             Multa.id_usuario == id_usuario,
             Multa.estado == "PENDIENTE",
             Multa.is_deleted == False,  # noqa: E712
         )
-        return self.session.execute(stmt).scalar_one()
-
-    def exists_for_prestamo(self, id_prestamo: int) -> bool:
-        stmt = select(func.count(Multa.id_multa)).where(
-            Multa.id_prestamo == id_prestamo,
-            Multa.is_deleted == False,  # noqa: E712
-        )
-        return self.session.execute(stmt).scalar_one() > 0
+        total = self.session.exec(stmt).one()
+        return bool(total > 0)

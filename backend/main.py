@@ -18,7 +18,19 @@ from core.messages import GenericMessages
 from core.rate_limit import limiter
 from core.request_limits import body_size_limit_middleware
 from core.security_headers import security_headers_middleware
-from routers import auth_router, libro_router, multa_router, prestamo_router, usuario_router
+from routers import (
+    analytics_router,
+    auditoria_router,
+    auth_router,
+    editorial_router,
+    ejemplar_router,
+    libro_router,
+    multa_router,
+    notificacion_router,
+    prestamo_router,
+    reserva_router,
+    usuario_router,
+)
 from services.exceptions import ServiceError
 
 if not os.path.exists("logs"):
@@ -102,7 +114,13 @@ app.include_router(auth_router, prefix="/api/auth")
 app.include_router(libro_router, prefix="/api/libros")
 app.include_router(usuario_router, prefix="/api/usuarios")
 app.include_router(prestamo_router, prefix="/api/prestamos")
+app.include_router(editorial_router, prefix="/api/editoriales")
+app.include_router(ejemplar_router, prefix="/api/ejemplares")
+app.include_router(reserva_router, prefix="/api/reservas")
+app.include_router(notificacion_router, prefix="/api/notificaciones")
 app.include_router(multa_router, prefix="/api/multas")
+app.include_router(auditoria_router, prefix="/api/auditoria")
+app.include_router(analytics_router, prefix="/api/dashboard")
 
 
 @app.get("/")
@@ -115,6 +133,10 @@ def home():
             "libros": "/api/libros",
             "usuarios": "/api/usuarios",
             "prestamos": "/api/prestamos",
+            "editoriales": "/api/editoriales",
+            "ejemplares": "/api/ejemplares",
+            "reservas": "/api/reservas",
+            "notificaciones": "/api/notificaciones",
             "multas": "/api/multas",
         },
     }

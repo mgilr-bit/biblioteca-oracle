@@ -40,14 +40,21 @@ class OracleCasbinRule(_CasbinBase):
 
 # (rol, subject, act, owner_only)
 DEFAULT_POLICIES = [
-    # Libros: lectura abierta a cualquier rol autenticado, escritura solo BIBLIOTECARIO.
+    # ADMIN del sistema: control total sobre cualquier recurso y acción.
+    # El matcher interpreta "*" como comodín (ver casbin_model.conf).
+    ("ADMIN", "*", "*", "false"),
+    # Libros: lectura abierta a cualquier rol autenticado, escritura solo BIBLIOTECARIO/ADMIN.
     ("BIBLIOTECARIO", "Libro", "read", "false"),
     ("BIBLIOTECARIO", "Libro", "create", "false"),
     ("BIBLIOTECARIO", "Libro", "update", "false"),
     ("BIBLIOTECARIO", "Libro", "delete", "false"),
     ("LECTOR", "Libro", "read", "false"),
-    # Usuarios: BIBLIOTECARIO administra a cualquiera; LECTOR solo lee/edita su propio perfil
-    # (el servicio impide además que un LECTOR se cambie el rol a sí mismo).
+    ("PROFESOR", "Libro", "read", "false"),
+    # Usuarios: BIBLIOTECARIO administra a cualquiera salvo a roles superiores
+    # (la protección de jerarquía vive en UsuarioService: no puede tocar a un
+    # ADMIN ni crear bibliotecarios/administradores); LECTOR/PROFESOR solo
+    # lee/edita su propio perfil (owner_only=true) y el servicio impide además
+    # que se cambien el rol a sí mismos.
     ("BIBLIOTECARIO", "Usuario", "read", "false"),
     ("BIBLIOTECARIO", "Usuario", "create", "false"),
     ("BIBLIOTECARIO", "Usuario", "update", "false"),
@@ -55,16 +62,59 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Usuario", "toggle_estado", "false"),
     ("LECTOR", "Usuario", "read", "true"),
     ("LECTOR", "Usuario", "update", "true"),
-    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR crea y lee solo los suyos.
+    ("PROFESOR", "Usuario", "read", "true"),
+    ("PROFESOR", "Usuario", "update", "true"),
+    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR y PROFESOR crean y leen solo los suyos.
     ("BIBLIOTECARIO", "Prestamo", "read", "false"),
     ("BIBLIOTECARIO", "Prestamo", "create", "false"),
     ("BIBLIOTECARIO", "Prestamo", "devolver", "false"),
     ("LECTOR", "Prestamo", "read", "true"),
     ("LECTOR", "Prestamo", "create", "false"),
-    # Multas: BIBLIOTECARIO ve todas y las cierra (pagar/condonar); LECTOR solo lee las suyas.
+    ("PROFESOR", "Prestamo", "read", "true"),
+    ("PROFESOR", "Prestamo", "create", "false"),
+    # Editoriales: catálogo legible para todos, gestionable solo por BIBLIOTECARIO/ADMIN.
+    ("BIBLIOTECARIO", "Editorial", "read", "false"),
+    ("BIBLIOTECARIO", "Editorial", "create", "false"),
+    ("BIBLIOTECARIO", "Editorial", "update", "false"),
+    ("BIBLIOTECARIO", "Editorial", "delete", "false"),
+    ("LECTOR", "Editorial", "read", "false"),
+    ("PROFESOR", "Editorial", "read", "false"),
+    # Ejemplares: venta/trazabilidad de copias físicas; lectura libre, gestión BIBLIOTECARIO/ADMIN.
+    ("BIBLIOTECARIO", "Ejemplar", "read", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "create", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "update", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "delete", "false"),
+    ("LECTOR", "Ejemplar", "read", "false"),
+    ("PROFESOR", "Ejemplar", "read", "false"),
+    # Reservas: biblioteca gestiona todas; LECTOR/PROFESOR crea y atiende las suyas.
+    ("BIBLIOTECARIO", "Reserva", "read", "false"),
+    ("BIBLIOTECARIO", "Reserva", "create", "false"),
+    ("BIBLIOTECARIO", "Reserva", "cancel", "false"),
+    ("LECTOR", "Reserva", "read", "true"),
+    ("LECTOR", "Reserva", "create", "false"),
+    ("LECTOR", "Reserva", "cancel", "true"),
+    ("PROFESOR", "Reserva", "read", "true"),
+    ("PROFESOR", "Reserva", "create", "false"),
+    ("PROFESOR", "Reserva", "cancel", "true"),
+    # Notificaciones: bandeja personal (owner_only para LECTOR/PROFESOR);
+    # BIBLIOTECARIO lee todas (asiste a usuarios); mantenimiento solo ADMIN.
+    ("BIBLIOTECARIO", "Notificacion", "read", "false"),
+    ("BIBLIOTECARIO", "Notificacion", "update", "false"),
+    ("LECTOR", "Notificacion", "read", "true"),
+    ("LECTOR", "Notificacion", "update", "true"),
+    ("PROFESOR", "Notificacion", "read", "true"),
+    ("PROFESOR", "Notificacion", "update", "true"),
+    # Multas: BIBLIOTECARIO lee/gestiona todas (cobrar/condonar); LECTOR y
+    # PROFESOR solo ven las suyas (owner_only), sin acciones de gestión.
     ("BIBLIOTECARIO", "Multa", "read", "false"),
     ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
     ("LECTOR", "Multa", "read", "true"),
+    ("PROFESOR", "Multa", "read", "true"),
+    # Auditoría: historial de eventos clave, consultable solo por el equipo de
+    # biblioteca (BIBLIOTECARIO/ADMIN). LECTOR/PROFESOR no tienen visibilidad.
+    ("BIBLIOTECARIO", "Auditoria", "read", "false"),
+    # Analítica OLAP: dashboard de métricas, solo BIBLIOTECARIO/ADMIN.
+    ("BIBLIOTECARIO", "Analitica", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
@@ -72,21 +122,17 @@ enforcer = casbin.Enforcer(_MODEL_PATH, _adapter)
 
 
 def ensure_default_policies() -> None:
-    """Siembra en `casbin_rule` (Oracle) las políticas por defecto que falten.
+    """Siembra las políticas por defecto en `casbin_rule` (Oracle).
 
-    Antes solo sembraba cuando la tabla estaba totalmente vacía, lo que
-    dejaba fuera cualquier política nueva agregada a `DEFAULT_POLICIES` en
-    un despliegue que ya tenía la tabla poblada (p. ej. las de `Multa`).
-    Ahora agrega, una por una, solo las que no existen todavía.
+    Es idempotente: en instalaciones nuevas siembra todas, y en instalaciones
+    existentes solo agrega las que falten (así nuevos roles/permisos llegan
+    sin tener que truncar la tabla ni tocar la BD a mano).
     """
     enforcer.load_policy()
-    nuevas = [
-        (rol, subject, act, owner_only)
-        for rol, subject, act, owner_only in DEFAULT_POLICIES
-        if not enforcer.has_policy(rol, subject, act, owner_only)
-    ]
-    if not nuevas:
-        return
-    for rol, subject, act, owner_only in nuevas:
-        enforcer.add_policy(rol, subject, act, owner_only)
+    existing = {tuple(policy) for policy in enforcer.get_policy()}
+    for rol, subject, act, owner_only in DEFAULT_POLICIES:
+        policy = (rol, subject, act, owner_only)
+        if policy not in existing:
+            enforcer.add_policy(*policy)
+            existing.add(policy)
     enforcer.save_policy()

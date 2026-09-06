@@ -7,9 +7,12 @@ from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
+from services.ejemplar_service import EjemplarService
 from services.exceptions import BusinessRuleError, ValidationError
 from services.multa_service import MultaService
+from services.reserva_service import ReservaService
 
 DIAS_PRESTAMO_DEFAULT = 14
 
@@ -20,6 +23,8 @@ class PrestamoService(BaseService[Prestamo]):
     def __init__(self, session):
         super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
+        self.ejemplar_service = EjemplarService(session)
+        self.reserva_service = ReservaService(session)
         self.multa_service = MultaService(session)
 
     def _calcular_estado(self, prestamo: Prestamo) -> str:
@@ -37,6 +42,8 @@ class PrestamoService(BaseService[Prestamo]):
             id_prestamo=prestamo.id_prestamo,
             id_libro=prestamo.id_libro,
             id_usuario=prestamo.id_usuario,
+            id_ejemplar=prestamo.id_ejemplar,
+            codigo_ejemplar=row[4] if len(row) > 4 else None,
             fecha_prestamo=prestamo.fecha_prestamo,
             fecha_devolucion_esperada=prestamo.fecha_devolucion_esperada,
             fecha_devolucion_real=prestamo.fecha_devolucion_real,
@@ -78,6 +85,7 @@ class PrestamoService(BaseService[Prestamo]):
 
         dias = int(dias_prestamo or DIAS_PRESTAMO_DEFAULT)
 
+        # Fase 5 (multas): una multa pendiente bloquea nuevos préstamos.
         if self.multa_service.usuario_tiene_pendientes(id_usuario):
             raise BusinessRuleError(PrestamoMessages.MULTAS_PENDIENTES)
 
@@ -92,6 +100,22 @@ class PrestamoService(BaseService[Prestamo]):
         )
         self.repository.add(prestamo, actor=requesting_user.email)
 
+        # Fase 2: asocia la copia física disponible al préstamo (si hay ejemplares).
+        ejemplar = self.ejemplar_service.asignar_a_prestamo(id_libro)
+        if ejemplar:
+            prestamo.id_ejemplar = ejemplar.id_ejemplar
+            self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "PRESTAMO_CREADO",
+            "Prestamo",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=prestamo.id_prestamo,
+            detalle=f"Libro #{id_libro} prestado a usuario #{id_usuario} ({dias} días)",
+        )
+
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
     def devolver(self, id_prestamo: int, actor: str) -> dict:
@@ -104,13 +128,35 @@ class PrestamoService(BaseService[Prestamo]):
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
 
+        if prestamo.id_ejemplar:
+            self.ejemplar_service.liberar(prestamo.id_ejemplar)
+
+        # Fase 3 (reservas): al volver una copia, la reserva FIFO más antigua
+        # pasa a CUMPLIDA y abre su ventana de recogida para el reservante.
+        self.reserva_service.promover_siguiente(prestamo.id_libro)
+
+        # Fase 5 (multas): si la devolución fue tardía se genera la multa.
         multa = self.multa_service.generar_por_devolucion_tardia(prestamo, actor=actor)
         if multa is not None:
+            AuditoriaService(self.repository.session).registrar(
+                "MULTA_GENERADA",
+                "Multa",
+                email=actor,
+                id_recurso=multa.id_multa,
+                detalle=f"Prestamo #{prestamo.id_prestamo}: {multa.dias_retraso} día(s) de retraso, Q{multa.monto}",
+            )
             return {
                 "success": True,
                 "message": PrestamoMessages.DEVOLUCION_CON_MULTA.format(
                     monto=multa.monto, dias=multa.dias_retraso
                 ),
             }
+
+        AuditoriaService(self.repository.session).registrar(
+            "PRESTAMO_DEVUELTO",
+            "Prestamo",
+            email=actor,
+            id_recurso=prestamo.id_prestamo,
+        )
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

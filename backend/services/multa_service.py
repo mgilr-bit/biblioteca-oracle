@@ -1,25 +1,23 @@
 """Servicios de gestión de multas por devolución tardía.
 
-Una multa nace únicamente en `PrestamoService.devolver`, cuando la fecha
-real de devolución es posterior a la esperada. El monto es fijo
-(`TARIFA_MULTA_ATRASO`, Q35) independientemente de los días de retraso.
-El bibliotecario luego la marca como PAGADA o CONDONADA; mientras siga
-PENDIENTE, el usuario no puede pedir nuevos préstamos.
+Regla: multa fija de TARIFA_MULTA_ATRASO (Q35) generada automáticamente por
+PrestamoService cuando la devolución ocurre después de la fecha esperada. Una
+multa en PENDIENTE bloquea la creación de nuevos préstamos para el usuario
+hasta que un BIBLIOTECARIO la marque como PAGADA o CONDONADA.
 """
 from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional
 
-from core.messages import MultaMessages
+from core.messages import MultaMessages, PrestamoMessages
 from models.multa import Multa
 from models.prestamo import Prestamo
 from repositories.multa_repository import MultaRepository
 from schemas.multa import MultaResponse
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
-from services.exceptions import ValidationError
+from services.exceptions import NotFoundError, ValidationError
 
-#: Sanción fija (GTQ) por devolver un préstamo después de la fecha esperada.
-TARIFA_MULTA_ATRASO = Decimal("35.00")
+TARIFA_MULTA_ATRASO = 35.0
 
 
 class MultaService(BaseService[Multa]):
@@ -57,48 +55,65 @@ class MultaService(BaseService[Multa]):
         ]
 
     def usuario_tiene_pendientes(self, id_usuario: int) -> bool:
-        return self.repository.count_pendientes_by_usuario(id_usuario) > 0
+        return self.repository.usuario_tiene_pendientes(id_usuario)
 
-    def generar_por_devolucion_tardia(self, prestamo: Prestamo, actor: str) -> Optional[Multa]:
-        """Crea (una sola vez por préstamo) la multa fija de Q35 si el préstamo
-        se devolvió después de la fecha esperada. Devuelve la multa creada, o
-        None si no correspondía."""
-        esperada = prestamo.fecha_devolucion_esperada
-        real = prestamo.fecha_devolucion_real or datetime.now()
-        if not esperada or real.date() <= esperada.date():
+    def generar_por_devolucion_tardia(
+        self, prestamo: Prestamo, actor: Optional[str] = None
+    ) -> Optional[Multa]:
+        """Crea la multa solo si la devolución fue tardía y no hay ya una
+        pendiente para ese préstamo (idempotente). Devuelve la multa o None."""
+        if not prestamo.fecha_devolucion_esperada:
             return None
-        if self.repository.exists_for_prestamo(prestamo.id_prestamo):
+        momento_devolucion = prestamo.fecha_devolucion_real or datetime.now()
+        dias = (momento_devolucion - prestamo.fecha_devolucion_esperada).days
+        if dias <= 0:
+            return None
+        if self.repository.get_pendiente_by_prestamo(prestamo.id_prestamo):
             return None
 
-        dias_retraso = (real.date() - esperada.date()).days
         multa = Multa(
             id_prestamo=prestamo.id_prestamo,
             id_usuario=prestamo.id_usuario,
             monto=TARIFA_MULTA_ATRASO,
-            dias_retraso=dias_retraso,
+            dias_retraso=dias,
             estado="PENDIENTE",
-            motivo=MultaMessages.MOTIVO_ATRASO.format(dias=dias_retraso),
+            motivo=MultaMessages.MOTIVO_ATRASO.format(dias=dias),
         )
         self.repository.add(multa, actor=actor)
         return multa
 
     def pagar(self, id_multa: int, actor: str) -> dict:
-        return self._cambiar_estado(id_multa, "PAGADA", actor, MultaMessages.PAGADA_OK, con_fecha_pago=True)
-
-    def condonar(self, id_multa: int, actor: str) -> dict:
-        return self._cambiar_estado(id_multa, "CONDONADA", actor, MultaMessages.CONDONADA_OK)
-
-    def _cambiar_estado(
-        self, id_multa: int, nuevo_estado: str, actor: str, mensaje: str, con_fecha_pago: bool = False
-    ) -> dict:
         multa = self.get_by_id(id_multa)
         if multa.estado != "PENDIENTE":
             raise ValidationError(MultaMessages.NO_PENDIENTE)
-
-        multa.estado = nuevo_estado
-        if con_fecha_pago:
-            multa.fecha_pago = datetime.now()
+        multa.estado = "PAGADA"
+        multa.fecha_pago = datetime.now()
         self.repository.mark_updated(multa, actor=actor)
         self.repository.flush()
 
-        return {"success": True, "message": mensaje}
+        AuditoriaService(self.repository.session).registrar(
+            "MULTA_PAGADA",
+            "Multa",
+            email=actor,
+            id_recurso=multa.id_multa,
+            detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
+        )
+        return {"success": True, "message": MultaMessages.PAGADA_OK}
+
+    def condonar(self, id_multa: int, actor: str) -> dict:
+        multa = self.get_by_id(id_multa)
+        if multa.estado != "PENDIENTE":
+            raise ValidationError(MultaMessages.NO_PENDIENTE)
+        multa.estado = "CONDONADA"
+        multa.fecha_pago = None
+        self.repository.mark_updated(multa, actor=actor)
+        self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "MULTA_CONDONADA",
+            "Multa",
+            email=actor,
+            id_recurso=multa.id_multa,
+            detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
+        )
+        return {"success": True, "message": MultaMessages.CONDONADA_OK}
