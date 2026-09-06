@@ -19,6 +19,7 @@ from core.rate_limit import limiter
 from core.request_limits import body_size_limit_middleware
 from core.security_headers import security_headers_middleware
 from routers import (
+    auditoria_router,
     auth_router,
     editorial_router,
     ejemplar_router,
@@ -117,6 +118,7 @@ app.include_router(ejemplar_router, prefix="/api/ejemplares")
 app.include_router(reserva_router, prefix="/api/reservas")
 app.include_router(notificacion_router, prefix="/api/notificaciones")
 app.include_router(multa_router, prefix="/api/multas")
+app.include_router(auditoria_router, prefix="/api/auditoria")
 
 
 @app.get("/")

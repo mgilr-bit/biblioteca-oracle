@@ -6,6 +6,7 @@ import logging
 from core.messages import AuthMessages, UsuarioMessages
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
+from services.auditoria_service import AuditoriaService
 from services.exceptions import AuthError, ValidationError
 from utils.security import hash_password, verify_password
 
@@ -28,8 +29,18 @@ class AuthService:
             or not verify_password(password, usuario.password)
         ):
             logger.warning(f"Intento de login fallido para email: {email}")
+            AuditoriaService(self.usuario_repo.session).registrar(
+                "LOGIN_FALLIDO", "Auth", email=email
+            )
             raise AuthError(AuthMessages.CREDENCIALES_INVALIDAS)
 
+        AuditoriaService(self.usuario_repo.session).registrar(
+            "LOGIN",
+            "Auth",
+            id_usuario=usuario.id_usuario,
+            email=usuario.email,
+            rol=usuario.rol,
+        )
         logger.info(f"Login exitoso para usuario: {email}")
         return usuario
 
@@ -57,6 +68,15 @@ class AuthService:
             rol="LECTOR",
         )
         self.usuario_repo.add(usuario, actor=email)
+
+        AuditoriaService(self.usuario_repo.session).registrar(
+            "REGISTER",
+            "Auth",
+            id_usuario=usuario.id_usuario,
+            email=usuario.email,
+            rol="LECTOR",
+            detalle=f"Registro de nuevo usuario {email}",
+        )
 
         logger.info(f"Nuevo usuario registrado: {email}")
         return {"success": True, "message": "Usuario registrado exitosamente"}

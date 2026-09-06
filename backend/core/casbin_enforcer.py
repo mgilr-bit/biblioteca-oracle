@@ -110,6 +110,9 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
     ("LECTOR", "Multa", "read", "true"),
     ("PROFESOR", "Multa", "read", "true"),
+    # Auditoría: historial de eventos clave, consultable solo por el equipo de
+    # biblioteca (BIBLIOTECARIO/ADMIN). LECTOR/PROFESOR no tienen visibilidad.
+    ("BIBLIOTECARIO", "Auditoria", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

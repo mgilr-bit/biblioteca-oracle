@@ -18,6 +18,7 @@ from models.reserva import Reserva
 from repositories.libro_repository import LibroRepository
 from repositories.reserva_repository import ReservaRepository
 from schemas.reserva import ReservaResponse
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
 
@@ -92,6 +93,16 @@ class ReservaService(BaseService[Reserva]):
         )
         self.repository.add(reserva, actor=requesting_user.email)
 
+        AuditoriaService(self.repository.session).registrar(
+            "RESERVA_CREADA",
+            "Reserva",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=reserva.id_reserva,
+            detalle=f"Reserva del libro #{id_libro} para usuario #{id_usuario}",
+        )
+
         return {"success": True, "message": "Reserva creada exitosamente"}
 
     def cancelar(self, id_reserva: int, requesting_user) -> dict:
@@ -102,6 +113,15 @@ class ReservaService(BaseService[Reserva]):
         reserva.estado = "CANCELADA"
         self.repository.mark_updated(reserva, actor=requesting_user.email)
         self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "RESERVA_CANCELADA",
+            "Reserva",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=reserva.id_reserva,
+        )
         return {"success": True, "message": "Reserva cancelada exitosamente"}
 
     def promover_siguiente(self, id_libro: int) -> Optional[Reserva]:

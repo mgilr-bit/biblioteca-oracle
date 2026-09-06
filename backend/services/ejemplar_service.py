@@ -15,6 +15,7 @@ from models.ejemplar import Ejemplar
 from models.libro import Libro
 from repositories.ejemplar_repository import EjemplarRepository
 from repositories.libro_repository import LibroRepository
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
 
@@ -112,6 +113,14 @@ class EjemplarService(BaseService[Ejemplar]):
         self.libro_repo.mark_updated(libro, actor=actor)
         self.libro_repo.flush()
 
+        AuditoriaService(self.repository.session).registrar(
+            "EJEMPLAR_CREADO",
+            "Ejemplar",
+            email=actor,
+            id_recurso=ejemplar.id_ejemplar,
+            detalle=f"Código {codigo} para el libro #{id_libro}",
+        )
+
         return {"success": True, "message": "Ejemplar creado exitosamente"}
 
     def _proximo_codigo(self, id_libro: int) -> str:
@@ -141,6 +150,14 @@ class EjemplarService(BaseService[Ejemplar]):
         ejemplar.estado = estado
         self.repository.mark_updated(ejemplar, actor=actor)
         self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "EJEMPLAR_ESTADO",
+            "Ejemplar",
+            email=actor,
+            id_recurso=ejemplar.id_ejemplar,
+            detalle=f"Código {ejemplar.codigo_ejemplar}: {estado}",
+        )
         return {"success": True, "message": f"Estado del ejemplar cambiado a {estado}"}
 
     def delete(self, id_ejemplar: int, actor: str) -> dict:

@@ -103,5 +103,15 @@ async def me(user=Depends(get_current_user)):
 @router.post("/logout", response_model=MessageResponse)
 async def logout(response: Response, user=Depends(get_current_user)):
     await revoke_session(user.sid, user.id, reason="logout")
+
+    def _registrar_logout() -> None:
+        from services.auditoria_service import AuditoriaService
+
+        with get_session() as session:
+            AuditoriaService(session).registrar(
+                "LOGOUT", "Auth", id_usuario=user.id, email=user.email, rol=user.rol
+            )
+
+    await run_in_threadpool(_registrar_logout)
     _clear_session_cookies(response)
     return {"success": True, "message": "Sesión cerrada"}

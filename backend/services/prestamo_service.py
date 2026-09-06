@@ -7,6 +7,7 @@ from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.ejemplar_service import EjemplarService
 from services.exceptions import BusinessRuleError, ValidationError
@@ -105,6 +106,16 @@ class PrestamoService(BaseService[Prestamo]):
             prestamo.id_ejemplar = ejemplar.id_ejemplar
             self.repository.flush()
 
+        AuditoriaService(self.repository.session).registrar(
+            "PRESTAMO_CREADO",
+            "Prestamo",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=prestamo.id_prestamo,
+            detalle=f"Libro #{id_libro} prestado a usuario #{id_usuario} ({dias} días)",
+        )
+
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
     def devolver(self, id_prestamo: int, actor: str) -> dict:
@@ -127,11 +138,25 @@ class PrestamoService(BaseService[Prestamo]):
         # Fase 5 (multas): si la devolución fue tardía se genera la multa.
         multa = self.multa_service.generar_por_devolucion_tardia(prestamo, actor=actor)
         if multa is not None:
+            AuditoriaService(self.repository.session).registrar(
+                "MULTA_GENERADA",
+                "Multa",
+                email=actor,
+                id_recurso=multa.id_multa,
+                detalle=f"Prestamo #{prestamo.id_prestamo}: {multa.dias_retraso} día(s) de retraso, Q{multa.monto}",
+            )
             return {
                 "success": True,
                 "message": PrestamoMessages.DEVOLUCION_CON_MULTA.format(
                     monto=multa.monto, dias=multa.dias_retraso
                 ),
             }
+
+        AuditoriaService(self.repository.session).registrar(
+            "PRESTAMO_DEVUELTO",
+            "Prestamo",
+            email=actor,
+            id_recurso=prestamo.id_prestamo,
+        )
 
         return {"success": True, "message": "Devolución registrada exitosamente"}

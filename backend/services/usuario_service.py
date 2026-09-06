@@ -9,6 +9,7 @@ import logging
 from core.messages import UsuarioMessages
 from models.usuario import Usuario
 from repositories.usuario_repository import UsuarioRepository
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
 from utils.security import hash_password
@@ -73,6 +74,16 @@ class UsuarioService(BaseService[Usuario]):
         self.repository.mark_updated(usuario, actor=requesting_user.email)
         self.repository.flush()
 
+        AuditoriaService(self.repository.session).registrar(
+            "USUARIO_ACTUALIZADO",
+            "Usuario",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=usuario.id_usuario,
+            detalle=f"Perfil {email} actualizado (rol {rol})",
+        )
+
         return {"success": True, "message": "Usuario actualizado exitosamente"}
 
     def delete(self, id_usuario: int, requesting_user) -> dict:
@@ -83,6 +94,15 @@ class UsuarioService(BaseService[Usuario]):
             raise BusinessRuleError(UsuarioMessages.TIENE_PRESTAMOS_ACTIVOS)
 
         self.delete_entity(id_usuario, actor=requesting_user.email)
+        AuditoriaService(self.repository.session).registrar(
+            "USUARIO_ELIMINADO",
+            "Usuario",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=id_usuario,
+            detalle=usuario.email,
+        )
         logger.info(f"Usuario {id_usuario} eliminado (soft-delete) por {requesting_user.email}")
         return {"success": True, "message": "Usuario eliminado exitosamente"}
 
@@ -112,6 +132,16 @@ class UsuarioService(BaseService[Usuario]):
         )
         self.repository.add(usuario, actor=requesting_user.email)
 
+        AuditoriaService(self.repository.session).registrar(
+            "USUARIO_CREADO",
+            "Usuario",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=usuario.id_usuario,
+            detalle=f"Usuario {email} creado con rol {rol}",
+        )
+
         logger.info(
             f"Nuevo usuario creado por {requesting_user.email}: {email} con rol {rol}"
         )
@@ -124,11 +154,21 @@ class UsuarioService(BaseService[Usuario]):
         usuario = self.get_by_id(id_usuario)
         _validar_objetivo_protegido(usuario.rol, requesting_user.rol)
 
+        estado_texto = "activado" if activo == "S" else "desactivado"
         usuario.activo = activo
         self.repository.mark_updated(usuario, actor=requesting_user.email)
         self.repository.flush()
 
-        estado_texto = "activado" if activo == "S" else "desactivado"
+        AuditoriaService(self.repository.session).registrar(
+            "USUARIO_ESTADO",
+            "Usuario",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=id_usuario,
+            detalle=f"Usuario {usuario.email} {estado_texto}",
+        )
+
         logger.info(f"Usuario {id_usuario} {estado_texto} por {requesting_user.email}")
         return {"success": True, "message": f"Usuario {estado_texto} exitosamente"}
 

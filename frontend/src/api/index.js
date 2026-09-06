@@ -85,6 +85,18 @@ export const prestamosAPI = {
   devolver: (id) => http.put(`/prestamos/${id}/devolver`)
 }
 
+export const auditoriaAPI = {
+  getAll: async (page = 1, perPage = 50, filters = {}) => {
+    const params = new URLSearchParams({ page, per_page: perPage })
+    if (filters.accion) params.append('accion', filters.accion)
+    if (filters.recurso) params.append('recurso', filters.recurso)
+    if (filters.id_usuario) params.append('id_usuario', filters.id_usuario)
+    return http.get(`/auditoria/?${params.toString()}`)
+  },
+  getAcciones: () => http.get('/auditoria/acciones'),
+  getRecursos: () => http.get('/auditoria/recursos')
+}
+
 export const usuariosAPI = {
   getAll: () => http.get('/usuarios/'),
   getById: (id) => http.get(`/usuarios/${id}`),

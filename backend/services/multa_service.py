@@ -13,6 +13,7 @@ from models.multa import Multa
 from models.prestamo import Prestamo
 from repositories.multa_repository import MultaRepository
 from schemas.multa import MultaResponse
+from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import NotFoundError, ValidationError
 
@@ -89,6 +90,14 @@ class MultaService(BaseService[Multa]):
         multa.fecha_pago = datetime.now()
         self.repository.mark_updated(multa, actor=actor)
         self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "MULTA_PAGADA",
+            "Multa",
+            email=actor,
+            id_recurso=multa.id_multa,
+            detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
+        )
         return {"success": True, "message": MultaMessages.PAGADA_OK}
 
     def condonar(self, id_multa: int, actor: str) -> dict:
@@ -99,4 +108,12 @@ class MultaService(BaseService[Multa]):
         multa.fecha_pago = None
         self.repository.mark_updated(multa, actor=actor)
         self.repository.flush()
+
+        AuditoriaService(self.repository.session).registrar(
+            "MULTA_CONDONADA",
+            "Multa",
+            email=actor,
+            id_recurso=multa.id_multa,
+            detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
+        )
         return {"success": True, "message": MultaMessages.CONDONADA_OK}

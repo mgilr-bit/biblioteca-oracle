@@ -18,10 +18,11 @@ const routes = [
     name: 'libros',
     component: () => import('../views/LibrosView.vue')
   },
-  {
-    path: '/editoriales',
-    name: 'editoriales',
-    component: () => import('../views/EditorialesView.vue')
+{
+    path: '/auditoria',
+    name: 'auditoria',
+    component: () => import('../views/AuditoriaView.vue'),
+    meta: { requiresBibliotecario: true }
   },
   {
     path: '/ejemplares',

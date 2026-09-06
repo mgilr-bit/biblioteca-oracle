@@ -1,3 +1,4 @@
+from .auditoria import Auditoria
 from .editorial import Editorial
 from .ejemplar import Ejemplar
 from .libro import Libro
@@ -8,6 +9,7 @@ from .reserva import Reserva
 from .usuario import Usuario
 
 __all__ = [
+    "Auditoria",
     "Editorial",
     "Ejemplar",
     "Libro",
