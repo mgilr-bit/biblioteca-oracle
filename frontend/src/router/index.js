@@ -25,6 +25,12 @@ const routes = [
     meta: { requiresBibliotecario: true }
   },
   {
+    path: '/analitica',
+    name: 'analitica',
+    component: () => import('../views/AnaliticaView.vue'),
+    meta: { requiresBibliotecario: true }
+  },
+  {
     path: '/ejemplares',
     name: 'ejemplares',
     component: () => import('../views/EjemplaresView.vue')

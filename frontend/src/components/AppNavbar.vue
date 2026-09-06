@@ -109,6 +109,9 @@ onBeforeUnmount(() => {
         <router-link v-can:read="'Auditoria'" to="/auditoria" class="app-nav__link" active-class="is-active">
           Auditoría
         </router-link>
+        <router-link v-can:read="'Analitica'" to="/analitica" class="app-nav__link" active-class="is-active">
+          Analítica
+        </router-link>
       </nav>
 
       <div class="app-nav__user">

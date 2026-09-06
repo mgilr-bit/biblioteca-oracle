@@ -97,6 +97,10 @@ export const auditoriaAPI = {
   getRecursos: () => http.get('/auditoria/recursos')
 }
 
+export const analiticaAPI = {
+  getResumen: () => http.get('/dashboard/olap')
+}
+
 export const usuariosAPI = {
   getAll: () => http.get('/usuarios/'),
   getById: (id) => http.get(`/usuarios/${id}`),

@@ -113,6 +113,8 @@ DEFAULT_POLICIES = [
     # Auditoría: historial de eventos clave, consultable solo por el equipo de
     # biblioteca (BIBLIOTECARIO/ADMIN). LECTOR/PROFESOR no tienen visibilidad.
     ("BIBLIOTECARIO", "Auditoria", "read", "false"),
+    # Analítica OLAP: dashboard de métricas, solo BIBLIOTECARIO/ADMIN.
+    ("BIBLIOTECARIO", "Analitica", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

@@ -64,6 +64,17 @@ BEGIN
        AND fecha_expiracion IS NOT NULL
        AND fecha_expiracion < SYSDATE;
 
+    -- (d) Refrescar las vistas materializadas OLAP (fase 7). Va protegido:
+    -- si las vistas aún no existen (BD inicializada antes de la migración
+    -- 0010) el cron no debe romper el resto del mantenimiento.
+    BEGIN
+        DBMS_MVIEW.REFRESH(
+            'V_OLAP_PRESTAMOS_MENSUAL,V_OLAP_TOP_LIBROS,V_OLAP_PRESTAMOS_GENERO,V_OLAP_MULTAS_MENSUAL'
+        );
+    EXCEPTION
+        WHEN OTHERS THEN NULL;
+    END;
+
     COMMIT;
 
     DBMS_OUTPUT.PUT_LINE('Notificaciones generadas: ' || v_avisos);
