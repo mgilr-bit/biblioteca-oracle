@@ -66,24 +66,16 @@ END;
 /
 
 -- ========================================
--- 6. TABLA DE MULTAS (OPCIONAL - FUNCIONALIDAD FUTURA)
+-- 6. TABLA DE MULTAS  --> YA IMPLEMENTADA
 -- ========================================
-CREATE TABLE multas (
-    id_multa NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_prestamo NUMBER NOT NULL,
-    id_usuario NUMBER NOT NULL,
-    monto NUMBER(10,2) NOT NULL CHECK (monto >= 0),
-    fecha_generacion DATE DEFAULT SYSDATE,
-    fecha_pago DATE,
-    estado VARCHAR2(20) DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE', 'PAGADA', 'CONDONADA')),
-    motivo VARCHAR2(200),
-    CONSTRAINT fk_multa_prestamo FOREIGN KEY (id_prestamo) REFERENCES prestamos(id_prestamo) ON DELETE CASCADE,
-    CONSTRAINT fk_multa_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
-) TABLESPACE PROYECTO_BD;
-
-CREATE INDEX idx_multas_usuario ON multas(id_usuario);
-CREATE INDEX idx_multas_estado ON multas(estado);
-CREATE INDEX idx_multas_prestamo ON multas(id_prestamo);
+-- La tabla `multas` dejó de ser "funcionalidad futura": ahora la crea la
+-- migración de Alembic backend/alembic/versions/0003_crear_tabla_multas.py
+-- (fuente única del esquema, igual que las columnas de auditoría en 0002).
+-- No recrearla aquí para no chocar (ORA-00955) con la migración.
+--
+-- Regla de negocio: al devolver un préstamo después de la fecha esperada
+-- se genera una multa fija de Q35 en estado PENDIENTE. Mientras el usuario
+-- tenga multas PENDIENTE no puede pedir nuevos préstamos.
 
 -- ========================================
 -- 7. TABLA DE RESERVAS (OPCIONAL - FUNCIONALIDAD FUTURA)

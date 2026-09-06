@@ -137,6 +137,7 @@ def home():
             "ejemplares": "/api/ejemplares",
             "reservas": "/api/reservas",
             "notificaciones": "/api/notificaciones",
+            "multas": "/api/multas",
         },
     }
 

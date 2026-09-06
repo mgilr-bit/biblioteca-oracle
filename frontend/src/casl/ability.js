@@ -22,6 +22,7 @@ export function buildAbilityFor(user) {
     // decisión de producto (2026-09-05): perfil, préstamos propios, lectura.
     can('read', 'Libro')
     can(['create', 'read'], 'Prestamo', { id_usuario: user.id })
+    can('read', 'Multa', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
     can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })
     can('read', 'Editorial')

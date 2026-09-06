@@ -1,24 +1,10 @@
+# El servicio `db` (Oracle XE en contenedor) esta deshabilitado a proposito:
+# esta maquina ya tiene una instancia local de Oracle XE 21c (tnslsnr.exe)
+# escuchando en 1521/5500 con el esquema `biblioteca_user` ya creado. El
+# backend se conecta a ese Oracle local via host.docker.internal (ver
+# DB_HOST mas abajo). Si se necesita volver al Oracle en contenedor, restaurar
+# este servicio desde el historial de git y quitar el override de DB_HOST.
 services:
-  db:
-    image: gvenzl/oracle-xe:21.3.0-slim
-    container_name: biblioteca-db
-    environment:
-      ORACLE_PASSWORD: oracle
-    ports:
-      - "1521:1521"
-    volumes:
-      - oracle-data:/opt/oracle/oradata
-      - ./database:/opt/proyecto-sql:ro
-      - ./database/initdb:/container-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD", "healthcheck.sh"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 180s
-    shm_size: 1g
-    restart: unless-stopped
-
   redis:
     image: redis:7-alpine
     container_name: biblioteca-redis
@@ -40,11 +26,11 @@ services:
     environment:
       DB_USER: biblioteca_user
       DB_PASSWORD: BiblioPass123
-      DB_HOST: db
+      DB_HOST: host.docker.internal
       DB_PORT: "1521"
       DB_SERVICE: XEPDB1
       SECRET_KEY: ${SECRET_KEY:-cambiar_esta_clave_en_produccion}
-      ALLOWED_ORIGINS: http://localhost:5500,http://127.0.0.1:5500,http://localhost:5000,http://127.0.0.1:5000
+      ALLOWED_ORIGINS: http://localhost:5501,http://127.0.0.1:5501,http://localhost:5000,http://127.0.0.1:5000
       PORT: "5000"
       ENV: development
       REDIS_URL: redis://redis:6379/0
@@ -52,11 +38,11 @@ services:
       SESSION_ABSOLUTE_TTL_SECONDS: "604800"
     volumes:
       - ./backend:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "5000:5000"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -65,8 +51,10 @@ services:
     build:
       context: ./frontend
     container_name: biblioteca-frontend
+    # Host 5501 en vez de 5500: el 5500 lo ocupa el listener XDB de la
+    # instancia Oracle local (ver nota junto al servicio `db` mas arriba).
     ports:
-      - "5500:80"
+      - "5501:80"
     depends_on:
       - backend
     restart: unless-stopped

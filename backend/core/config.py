@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     CSRF_HEADER_NAME: str = "X-XSRF-TOKEN"
 
     RATE_LIMIT_DEFAULT: str = "100/minute"
-    RATE_LIMIT_AUTH: str = "5/15minutes"
+    RATE_LIMIT_AUTH: str = "5/1minutes"
 
     @property
     def is_production(self) -> bool:
