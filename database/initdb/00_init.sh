@@ -18,4 +18,7 @@ sqlplus -S -L biblioteca_user/BiblioPass123@//localhost:1521/XEPDB1 @/opt/proyec
 echo "==> [biblio] 07_indices_adicionales.sql: creando indices"
 sqlplus -S -L biblioteca_user/BiblioPass123@//localhost:1521/XEPDB1 @/opt/proyecto-sql/07_indices_adicionales.sql
 
+echo "==> [biblio] 10_metabase_user.sql: usuario de solo lectura para Metabase"
+sqlplus -S -L sys/"$ORACLE_PASSWORD" as sysdba @/opt/proyecto-sql/10_metabase_user.sql
+
 echo "==> [biblio] Inicializacion de esquema completada"

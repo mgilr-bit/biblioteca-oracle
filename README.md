@@ -112,6 +112,19 @@ Opción 2: Usar Live Server de VSCode o cualquier otro servidor web.
 
 El frontend estará disponible en `http://localhost:5500`
 
+### Estadísticas y BI (Metabase, opcional)
+
+Metabase se levanta con el mismo `docker-compose` (servicio `metabase`,
+`http://localhost:3000`) sobre las **vistas materializadas OLAP** y las tablas
+operativas, con un usuario de solo lectura dedicado:
+
+```
+docker compose up -d metabase
+```
+
+Requisitos y pasos (driver JDBC de Oracle, credenciales de conexión y objetos
+recomendados) en [`metabase/plugins/README.md`](metabase/plugins/README.md).
+
 ## Usuarios de Prueba
 
 Después de ejecutar `init_data.py`:

@@ -71,5 +71,23 @@ services:
       - backend
     restart: unless-stopped
 
+  metabase:
+    image: metabase/metabase:v0.52.7
+    container_name: biblioteca-metabase
+    environment:
+      MB_SITE_NAME: Biblioteca Analytics
+      # Metabase NO trae el driver JDBC de Oracle; los .jar van en
+      # ./metabase/plugins (ver metabase/plugins/README.md) y se montan
+      # como volumen de solo lectura.
+      MB_PLUGINS_DIR: /plugins
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./metabase/plugins:/plugins:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   oracle-data:
