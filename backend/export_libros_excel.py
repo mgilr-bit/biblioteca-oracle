@@ -9,6 +9,8 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
+from config.oracle_dsn import get_dsn
+
 # Cargar variables de entorno
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -20,7 +22,7 @@ def export_libros_to_excel():
         connection = oracledb.connect(
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD'),
-            dsn=f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_SERVICE')}"
+            dsn=get_dsn()
         )
 
         print("✓ Conectado a la base de datos Oracle")
@@ -86,7 +88,7 @@ def export_libros_with_stats():
         connection = oracledb.connect(
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD'),
-            dsn=f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_SERVICE')}"
+            dsn=get_dsn()
         )
 
         print("✓ Conectado a la base de datos Oracle")

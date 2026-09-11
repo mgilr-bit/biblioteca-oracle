@@ -1,13 +1,21 @@
 """
 Script simplificado para generar el Diagrama ER desde dentro del contenedor Docker
 """
-import oracledb
+import os
 
-# Conectar directamente
+import oracledb
+from dotenv import load_dotenv
+from pathlib import Path
+
+from config.oracle_dsn import get_dsn
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env', override=True)
+
+# Conectar usando la misma configuración que el resto del proyecto
 connection = oracledb.connect(
-    user='BIBLIOTECA_USER',
-    password='BiblioPass123',
-    dsn='localhost:1521/XEPDB1'
+    user=os.getenv('DB_USER', 'BIBLIOTECA_USER').upper(),
+    password=os.getenv('DB_PASSWORD', 'BiblioPass123'),
+    dsn=get_dsn()
 )
 
 print("✓ Conectado a la base de datos\n")

@@ -13,6 +13,11 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # Descriptor TCPS completo de Oracle Autonomous Database (TLS de una vía).
+      # Agregar la IP de salida de Render a la ACL de la base en OCI.
+      - key: DB_DSN
+        sync: false
+      # Solo si se usa Oracle no-ADB (Easy Connect); dejar sin definir con DB_DSN.
       - key: DB_HOST
         sync: false
       - key: DB_PORT

@@ -1,9 +1,8 @@
-# El servicio `db` (Oracle XE en contenedor) esta deshabilitado a proposito:
-# esta maquina ya tiene una instancia local de Oracle XE 21c (tnslsnr.exe)
-# escuchando en 1521/5500 con el esquema `biblioteca_user` ya creado. El
-# backend se conecta a ese Oracle local via host.docker.internal (ver
-# DB_HOST mas abajo). Si se necesita volver al Oracle en contenedor, restaurar
-# este servicio desde el historial de git y quitar el override de DB_HOST.
+# El servicio `db` (Oracle XE en contenedor) esta deshabilitado a proposito.
+# El backend se conecta a Oracle Autonomous Database (cloud.oracle.com) usando
+# el descriptor TCPS de la variable DB_DSN, que se toma del archivo .env de la
+# raiz del proyecto (junto con DB_USER / DB_PASSWORD). Para volver a un Oracle
+# local basta con vaciar DB_DSN y definir DB_HOST/DB_PORT/DB_SERVICE en .env.
 services:
   redis:
     image: redis:7-alpine
@@ -24,11 +23,14 @@ services:
       context: ./backend
     container_name: biblioteca-backend
     environment:
-      DB_USER: biblioteca_user
-      DB_PASSWORD: BiblioPass123
-      DB_HOST: host.docker.internal
-      DB_PORT: "1521"
-      DB_SERVICE: XEPDB1
+      # Credenciales y DSN se toman del .env de la raiz (no se hardcodean aqui).
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DSN: ${DB_DSN:-}
+      # Fallback a Oracle local si DB_DSN esta vacia:
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-1521}
+      DB_SERVICE: ${DB_SERVICE:-XEPDB1}
       SECRET_KEY: ${SECRET_KEY:-cambiar_esta_clave_en_produccion}
       ALLOWED_ORIGINS: http://localhost:5501,http://127.0.0.1:5501,http://localhost:5000,http://127.0.0.1:5000
       PORT: "5000"
@@ -72,10 +74,7 @@ services:
       - "3000:3000"
     volumes:
       - ./metabase/plugins:/plugins:ro
-    depends_on:
-      db:
-        condition: service_healthy
+    # Metabase se conecta directamente a Oracle Autonomous Database (misma base
+    # que el backend); configurar la conexión desde su UI con el descriptor de
+    # DB_DSN. Ya no depende de un servicio `db` local.
     restart: unless-stopped
-
-volumes:
-  oracle-data:

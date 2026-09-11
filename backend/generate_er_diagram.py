@@ -11,20 +11,19 @@ import os
 env_path = Path(__file__).resolve().parent.parent / '.env'
 load_dotenv(dotenv_path=env_path, override=True)
 
+from config.oracle_dsn import get_dsn
+
 # Configuración de la base de datos
 DB_USER = os.getenv('DB_USER', 'biblioteca_user').upper()  # Oracle convierte a mayúsculas
 DB_PASSWORD = os.getenv('DB_PASSWORD', 'BiblioPass123')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '1521')
-DB_SERVICE = os.getenv('DB_SERVICE', 'XEPDB1')
+dsn = get_dsn()
 
 print("=" * 80)
 print("GENERADOR DE DIAGRAMA ER - SISTEMA BIBLIOTECA")
 print("=" * 80)
-print(f"\nConectando a: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_SERVICE}\n")
+print(f"\nConectando a: {DB_USER}@{dsn}\n")
 
-# Conectar a la base de datos - usar configuración completa de DSN
-dsn = oracledb.makedsn(DB_HOST, DB_PORT, service_name=DB_SERVICE)
+# Conectar a la base de datos
 connection = oracledb.connect(user=DB_USER, password=DB_PASSWORD, dsn=dsn)
 cursor = connection.cursor()
 

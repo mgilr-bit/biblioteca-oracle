@@ -66,9 +66,18 @@ Editar el archivo `.env` en la raíz del proyecto:
 # Base de datos
 DB_USER=biblioteca_user
 DB_PASSWORD=BiblioPass123
+
+# Opción A - Oracle XE local:
 DB_HOST=localhost
 DB_PORT=1521
 DB_SERVICE=XEPDB1
+
+# Opción B - Oracle Autonomous Database (cloud.oracle.com), TLS de una vía:
+#   1. En la consola de OCI: "Mutual TLS authentication" = Not required
+#   2. Agrega la IP del cliente a la Access Control List (ACL)
+#   3. Copia el connect string TLS (_low) y pégalo en UNA línea. Si DB_DSN
+#      está definida, tiene prioridad sobre DB_HOST/DB_PORT/DB_SERVICE.
+#DB_DSN=(description=(retry_count=20)(retry_delay=3)(address=(protocol=tcps)(port=1521)(host=adb.TU-REGION.oraclecloud.com))(connect_data=(service_name=XXXX_biblioteca_low.adb.oraclecloud.com))(security=(ssl_server_dn_match=yes)))
 
 # Flask
 FLASK_ENV=development

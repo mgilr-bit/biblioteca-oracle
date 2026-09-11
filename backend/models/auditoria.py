@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Identity, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Identity, Integer, String, text
 from sqlmodel import Field, SQLModel
 
 
@@ -32,5 +32,8 @@ class Auditoria(SQLModel, table=True):
     id_recurso: Optional[int] = Field(default=None, sa_column=Column("id_recurso", Integer))
     detalle: Optional[str] = Field(default=None, sa_column=Column("detalle", String(500)))
     created_at: Optional[datetime] = Field(
-        default=None, sa_column=Column("created_at", DateTime, nullable=False)
+        default=None,
+        sa_column=Column(
+            "created_at", DateTime, nullable=False, server_default=text("SYSTIMESTAMP")
+        ),
     )

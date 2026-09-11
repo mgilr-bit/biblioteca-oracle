@@ -42,14 +42,15 @@ _VISTAS = [
     ),
     (
         "V_OLAP_TOP_LIBROS",
+        # Sin ORDER BY / FETCH FIRST: una vista materializada no admite la
+        # cláusula de limitación de filas (ORA-03049). El "top 10" lo aplica
+        # analytics_repository.top_libros() al leer la vista.
         """
         SELECT l.id_libro, l.titulo, l.autor, COUNT(*) AS total_prestamos
         FROM prestamos p
         JOIN libros l ON p.id_libro = l.id_libro
         WHERE p.is_deleted = 0 AND l.is_deleted = 0
         GROUP BY l.id_libro, l.titulo, l.autor
-        ORDER BY COUNT(*) DESC
-        FETCH FIRST 10 ROWS ONLY
         """,
     ),
     (
@@ -81,8 +82,20 @@ _VISTAS = [
 
 
 def upgrade() -> None:
+    # Idempotente: cada CREATE MATERIALIZED VIEW es DDL y Oracle la
+    # auto-commitea al toque, así que un intento previo que fallara a mitad
+    # de camino (p. ej. en la 3ra vista) ya dejó creadas la 1ra y la 2da.
+    # Sin este chequeo, reintentar la migración choca con ORA-12006.
     conn = op.get_bind()
+    # Las vistas materializadas no aparecen en user_views (van en user_mviews,
+    # también respaldadas por una tabla); no sirve inspector.get_view_names().
+    existentes = {
+        row[0]
+        for row in conn.execute(sa.text("SELECT mview_name FROM user_mviews"))
+    }
     for nombre, query in _VISTAS:
+        if nombre.upper() in existentes:
+            continue
         conn.execute(
             sa.text(
                 f"CREATE MATERIALIZED VIEW {nombre} BUILD IMMEDIATE REFRESH ON DEMAND AS {query}"

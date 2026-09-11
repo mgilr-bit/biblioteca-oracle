@@ -1,29 +1,58 @@
 #!/bin/sh
 set -e
 
-echo "==> [backend] Esperando conexion a Oracle ($DB_HOST:$DB_PORT/$DB_SERVICE)..."
+echo "==> [backend] Esperando conexion a Oracle (${DB_DSN:-$DB_HOST:$DB_PORT/$DB_SERVICE})..."
 
 if ! python - <<'PY'
 import oracledb, os, sys, time
 
-dsn = f"{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_SERVICE']}"
-for _ in range(120):
+from config.oracle_dsn import get_dsn
+
+dsn = get_dsn()
+last_error = None
+for intento in range(1, 61):
     try:
         conn = oracledb.connect(
             user=os.environ['DB_USER'],
             password=os.environ['DB_PASSWORD'],
             dsn=dsn,
         )
-        cur = conn.cursor()
-        cur.execute("SELECT table_name FROM user_tables WHERE table_name = 'USUARIOS'")
-        if cur.fetchone():
-            print("==> [backend] Conexion OK y esquema listo")
-            sys.exit(0)
+        conn.cursor().execute("SELECT 1 FROM DUAL")
         conn.close()
-    except Exception:
-        pass
+        print("==> [backend] Conexion a Oracle OK")
+        sys.exit(0)
+    except Exception as e:  # noqa: BLE001
+        last_error = e
+        # Imprime el error real en el 1er intento y luego cada 5, para no
+        # quedarse "esperando" en silencio si las credenciales/ACL/DSN fallan.
+        if intento == 1 or intento % 5 == 0:
+            print(f"==> [backend] intento {intento}/60 fallo: {type(e).__name__}: {e}")
     time.sleep(5)
-print("==> [backend] ERROR: no se pudo conectar a la base de datos")
+print(f"==> [backend] ERROR: no se pudo conectar a la base de datos: {last_error}")
+sys.exit(1)
+PY
+then
+    exit 1
+fi
+
+echo "==> [backend] Verificando que el esquema base exista..."
+if ! python - <<'PY'
+import oracledb, os, sys
+
+from config.oracle_dsn import get_dsn
+
+conn = oracledb.connect(
+    user=os.environ['DB_USER'],
+    password=os.environ['DB_PASSWORD'],
+    dsn=get_dsn(),
+)
+cur = conn.cursor()
+cur.execute("SELECT COUNT(*) FROM user_tables WHERE table_name = 'USUARIOS'")
+if cur.fetchone()[0]:
+    sys.exit(0)
+print("==> [backend] ERROR: la tabla USUARIOS no existe en este esquema.")
+print("==> [backend] Carga primero database/*.sql (02_tables.sql, 03_triggers.sql, ...)")
+print("==> [backend] en la base de la nube antes de levantar el backend.")
 sys.exit(1)
 PY
 then
@@ -43,7 +72,9 @@ echo "==> [backend] Verificando datos iniciales..."
 if python - <<'PY'
 import oracledb, os, sys
 
-dsn = f"{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_SERVICE']}"
+from config.oracle_dsn import get_dsn
+
+dsn = get_dsn()
 conn = oracledb.connect(
     user=os.environ['DB_USER'],
     password=os.environ['DB_PASSWORD'],

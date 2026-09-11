@@ -59,7 +59,8 @@ class AnalyticsRepository:
         rows = self.session.execute(
             text(
                 "SELECT id_libro, titulo, autor, total_prestamos "
-                "FROM V_OLAP_TOP_LIBROS ORDER BY total_prestamos DESC"
+                "FROM V_OLAP_TOP_LIBROS "
+                "ORDER BY total_prestamos DESC FETCH FIRST 10 ROWS ONLY"
             )
         ).all()
         return [
