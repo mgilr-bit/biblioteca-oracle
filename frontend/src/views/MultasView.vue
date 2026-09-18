@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import { multasAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
+import ReportButton from '../components/ReportButton.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -88,9 +89,12 @@ onMounted(() => load())
   <div class="stack">
     <div class="page-header">
       <h2>{{ auth.isBibliotecario ? 'Gestión de multas' : 'Mis multas' }}</h2>
-      <span v-if="totalPendiente > 0" class="stamp stamp-danger">
-        Pendiente: {{ money(totalPendiente) }}
-      </span>
+      <div class="cluster">
+        <span v-if="totalPendiente > 0" class="stamp stamp-danger">
+          Pendiente: {{ money(totalPendiente) }}
+        </span>
+        <ReportButton seccion="multas" :filtros="{ vista: activeTab }" />
+      </div>
     </div>
 
     <div v-if="!auth.isBibliotecario" class="notice notice-info">

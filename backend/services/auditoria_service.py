@@ -80,7 +80,8 @@ class AuditoriaService(BaseService[Auditoria]):
             "USUARIO_ESTADO",
             "EJEMPLAR_CREADO",
             "EJEMPLAR_ESTADO",
+            "REPORTE_GENERADO",
         ]
 
     def get_recursos_disponibles(self) -> List[str]:
-        return ["Libro", "Prestamo", "Usuario", "Reserva", "Multa", "Ejemplar", "Auth"]
+        return ["Libro", "Prestamo", "Usuario", "Reserva", "Multa", "Ejemplar", "Auth", "Reporte"]

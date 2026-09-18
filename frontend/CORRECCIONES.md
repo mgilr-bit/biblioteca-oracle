@@ -107,7 +107,7 @@ cae al `index.html` y Vue Router decide qué vista mostrar.
 **Antes:** copiaba el HTML/CSS/JS tal cual a nginx, porque no había paso de
 build.
 
-**Ahora:** Dockerfile *multi-stage*: una etapa `node:20-alpine` instala
+**Ahora:** Dockerfile *multi-stage*: una etapa `node:24-alpine` instala
 dependencias y corre `npm run build`, y solo el resultado (`dist/`) se copia
 a la imagen final de `nginx:alpine`. La imagen final no lleva Node ni
 `node_modules`.

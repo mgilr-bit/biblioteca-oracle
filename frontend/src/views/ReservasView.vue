@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
 import { useCan } from '../composables/useCan'
 import AppModal from '../components/AppModal.vue'
+import ReportButton from '../components/ReportButton.vue'
 
 const auth = useAuthStore()
 const can = useCan()
@@ -132,7 +133,10 @@ onMounted(() => {
         <h2>Gestión de reservas</h2>
         <p class="text-muted" style="margin:0">Cola FIFO: la reserva más antigua se atiende primero cuando vuelve una copia.</p>
       </div>
-      <button v-can:create="'Reserva'" class="btn btn-primary" @click="openCreate">+ Nueva reserva</button>
+      <div class="cluster">
+        <ReportButton seccion="reservas" :filtros="{ estado: filtroEstado }" />
+        <button v-can:create="'Reserva'" class="btn btn-primary" @click="openCreate">+ Nueva reserva</button>
+      </div>
     </div>
 
     <div class="card" v-if="can('read', 'Reserva') && !can('manage', 'all')">

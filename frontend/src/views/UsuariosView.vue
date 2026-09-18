@@ -5,6 +5,7 @@ import { usuariosAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import AppModal from '../components/AppModal.vue'
+import ReportButton from '../components/ReportButton.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -131,7 +132,10 @@ onMounted(loadUsuarios)
   <div class="stack">
     <div class="page-header">
       <h2>Gestión de usuarios</h2>
-      <button class="btn btn-primary" @click="openCreate">+ Nuevo usuario</button>
+      <div class="cluster">
+        <ReportButton seccion="usuarios" :filtros="filtro" />
+        <button class="btn btn-primary" @click="openCreate">+ Nuevo usuario</button>
+      </div>
     </div>
 
     <div class="card">

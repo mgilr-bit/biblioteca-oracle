@@ -16,6 +16,12 @@ def _enforce(user: SessionUser, subject: str, act: str, owner_id: Optional[int])
     return enforcer.enforce(sub, obj, act)
 
 
+def has_permission(user: SessionUser, subject: str, act: str, owner_id: Optional[int] = None) -> bool:
+    """Chequeo programático (sin levantar 403) para decidir el alcance de una
+    respuesta, ej. si un reporte incluye a todos los usuarios o solo al propio."""
+    return _enforce(user, subject, act, owner_id)
+
+
 def require_permission(subject: str, act: str):
     """Gate de RBAC puro (sin contexto de dueño): listas, creación, acciones admin."""
 

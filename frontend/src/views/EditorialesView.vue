@@ -5,6 +5,7 @@ import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import { useCan } from '../composables/useCan'
 import AppModal from '../components/AppModal.vue'
+import ReportButton from '../components/ReportButton.vue'
 
 const can = useCan()
 const toast = useToast()
@@ -100,7 +101,10 @@ onMounted(loadEditoriales)
   <div class="stack">
     <div class="page-header">
       <h2>Gestión de editoriales</h2>
-      <button v-can:create="'Editorial'" class="btn btn-primary" @click="openCreate">+ Nueva editorial</button>
+      <div class="cluster">
+        <ReportButton seccion="editoriales" />
+        <button v-can:create="'Editorial'" class="btn btn-primary" @click="openCreate">+ Nueva editorial</button>
+      </div>
     </div>
 
     <div class="card">

@@ -20,8 +20,22 @@ export const librosAPI = {
   update: (id, libro) => http.put(`/libros/${id}`, libro),
   delete: (id) => http.delete(`/libros/${id}`),
   getBajoStock: () => http.get('/libros/bajo-stock'),
-  getEstadisticas: () => http.get('/libros/estadisticas'),
-  exportCSV: () => http.getBlob('/libros/export/csv')
+  getEstadisticas: () => http.get('/libros/estadisticas')
+}
+
+// Filtros vacíos no se envían: el backend los interpreta como "sin filtro".
+function reporteQuery(formato, filtros) {
+  const params = new URLSearchParams({ formato })
+  Object.entries(filtros).forEach(([clave, valor]) => {
+    if (valor !== '' && valor !== null && valor !== undefined) params.append(clave, valor)
+  })
+  return params.toString()
+}
+
+export const reportesAPI = {
+  obtener: (seccion, filtros = {}) => http.get(`/reportes/${seccion}?${reporteQuery('json', filtros)}`),
+  descargar: (seccion, formato, filtros = {}) =>
+    http.getBlob(`/reportes/${seccion}?${reporteQuery(formato, filtros)}`)
 }
 
 export const notificacionesAPI = {

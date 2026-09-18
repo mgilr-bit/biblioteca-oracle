@@ -6,6 +6,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { useCan } from '../composables/useCan'
 import AppModal from '../components/AppModal.vue'
 import AppPagination from '../components/AppPagination.vue'
+import ReportButton from '../components/ReportButton.vue'
 
 const can = useCan()
 const toast = useToast()
@@ -20,6 +21,9 @@ const loading = ref(true)
 const emptyMessage = ref('No hay libros')
 
 const search = ref({ titulo: '', autor: '', isbn: '', genero: '' })
+// Filtros de la última búsqueda ejecutada (no lo que está a medio escribir),
+// para que el reporte coincida con la tabla que se ve.
+const busquedaAplicada = ref({})
 
 const paginatedLibros = computed(() => {
   const start = (currentPage.value - 1) * perPage
@@ -48,6 +52,7 @@ async function loadLibros() {
   try {
     const response = await librosAPI.getAll(1, 1000)
     allLibros.value = response.libros || response
+    busquedaAplicada.value = {}
     currentPage.value = 1
     emptyMessage.value = 'No hay libros'
   } catch (error) {
@@ -68,6 +73,7 @@ async function searchLibros() {
   loading.value = true
   try {
     allLibros.value = await librosAPI.search(params)
+    busquedaAplicada.value = { ...search.value }
     currentPage.value = 1
     emptyMessage.value = 'No se encontraron resultados'
   } catch (error) {
@@ -151,23 +157,6 @@ async function deleteLibro(libro) {
   }
 }
 
-async function exportarCSV() {
-  try {
-    const blob = await librosAPI.exportCSV()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `libros_${Date.now()}.csv`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    toast.success('Archivo CSV descargado')
-  } catch (error) {
-    toast.error('Error al exportar: ' + error.message)
-  }
-}
-
 onMounted(() => {
   loadGeneros()
   loadEditoriales()
@@ -180,7 +169,7 @@ onMounted(() => {
     <div class="page-header">
       <h2>Gestión de libros</h2>
       <div class="cluster">
-        <button v-can:read="'Libro'" class="btn btn-outline" @click="exportarCSV">Exportar CSV</button>
+        <ReportButton seccion="libros" :filtros="busquedaAplicada" />
         <button v-can:create="'Libro'" class="btn btn-primary" @click="openCreate">+ Nuevo libro</button>
       </div>
     </div>

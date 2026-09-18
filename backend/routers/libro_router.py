@@ -4,14 +4,12 @@ Los handlers son funciones sync (no `async def`): FastAPI las corre en un
 threadpool automáticamente, que es lo correcto dado que la sesión de BD
 hace I/O bloqueante contra Oracle (ver decisión de mantener la capa de
 datos síncrona en el plan de migración) — así no se bloquea el event loop.
+
+Los reportes del catálogo (PDF/XLSX/CSV) viven en routers/reporte_router.py.
 """
-import csv
-import io
-import logging
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 from core.etag import etag_response
@@ -29,7 +27,6 @@ from schemas.libro import (
 from services.libro_service import LibroService
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 READ = require_permission("Libro", "read")
 WRITE = require_permission("Libro", "update")
@@ -61,31 +58,6 @@ def search_libros(
 def libros_bajo_stock(request: Request, session: Session = Depends(get_db_session), user=Depends(READ)):
     libros = LibroService(session).get_bajo_stock()
     return etag_response(request, [LibroResponse.model_validate(l) for l in libros])
-
-
-@router.get("/export/csv")
-def export_libros_csv(
-    session: Session = Depends(get_db_session),
-    user=Depends(require_permission("Libro", "read")),
-):
-    libros = LibroService(session).get_all_for_export()
-
-    rows = [LibroResponse.model_validate(l).model_dump(by_alias=True) for l in libros]
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    if rows:
-        headers = list(rows[0].keys())
-        writer.writerow(headers)
-        for row in rows:
-            writer.writerow([row.get(h) for h in headers])
-
-    logger.info(f"Exportación CSV: {len(rows)} libros exportados por usuario {user.email}")
-
-    response = Response(content=output.getvalue(), media_type="text/csv; charset=utf-8")
-    filename = f"libros_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-    return response
 
 
 @router.get("/estadisticas", response_model=LibroEstadisticasResponse)

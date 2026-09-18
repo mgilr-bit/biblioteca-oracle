@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { analiticaAPI } from '../api'
 import { useToast } from '../composables/useToast'
+import ReportButton from '../components/ReportButton.vue'
 
 const toast = useToast()
 const loading = ref(true)
@@ -45,9 +46,12 @@ onMounted(async () => {
   <div class="stack">
     <div class="page-header">
       <h2>Dashboard analítico</h2>
-      <span v-if="!loading" class="text-muted" style="font-size:0.8rem">
-        Datos OLAP (vistas materializadas, refresco diario)
-      </span>
+      <div class="cluster">
+        <span v-if="!loading" class="text-muted" style="font-size:0.8rem">
+          Datos OLAP (vistas materializadas, refresco diario)
+        </span>
+        <ReportButton seccion="analitica" />
+      </div>
     </div>
 
     <p v-if="loading" class="text-muted">Cargando…</p>

@@ -44,9 +44,6 @@ class LibroService(BaseService[Libro]):
             "total_pages": (total + per_page - 1) // per_page,
         }
 
-    def get_all_for_export(self) -> List[Libro]:
-        return self.repository.get_ordered_by_titulo()
-
     def get_generos(self) -> List[str]:
         return self.repository.get_generos()
 

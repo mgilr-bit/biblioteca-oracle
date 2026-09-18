@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { auditoriaAPI } from '../api'
 import { useToast } from '../composables/useToast'
+import ReportButton from '../components/ReportButton.vue'
 
 const toast = useToast()
 
@@ -11,6 +12,9 @@ const totalPages = ref(1)
 const loading = ref(true)
 const filtroAccion = ref('')
 const filtroRecurso = ref('')
+// Filtros con los que se cargó la grilla (los selects pueden cambiar sin
+// pulsar "Filtrar"): el reporte usa estos para coincidir con lo visible.
+const filtrosAplicados = ref({})
 const acciones = ref([])
 const recursos = ref([])
 
@@ -42,11 +46,9 @@ async function load(p = 1) {
   page.value = p
   loading.value = true
   try {
-    const data = await auditoriaAPI.getAll(
-      p,
-      50,
-      { accion: filtroAccion.value, recurso: filtroRecurso.value }
-    )
+    const filtros = { accion: filtroAccion.value, recurso: filtroRecurso.value }
+    const data = await auditoriaAPI.getAll(p, 50, filtros)
+    filtrosAplicados.value = filtros
     registros.value = data.auditoria || []
     totalPages.value = data.total_pages || 1
   } catch (error) {
@@ -82,6 +84,7 @@ onMounted(async () => {
   <div class="stack">
     <div class="page-header">
       <h2>Auditoría de eventos</h2>
+      <ReportButton seccion="auditoria" :filtros="filtrosAplicados" />
     </div>
 
     <div class="card">

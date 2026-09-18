@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { librosAPI, prestamosAPI, multasAPI } from '../api'
 import { useToast } from '../composables/useToast'
+import ReportButton from '../components/ReportButton.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -88,7 +89,10 @@ onMounted(async () => {
 
 <template>
   <div class="stack">
-    <h2>Dashboard</h2>
+    <div class="page-header" style="margin-bottom:0">
+      <h2 style="margin:0">Dashboard</h2>
+      <ReportButton seccion="dashboard" />
+    </div>
 
     <p v-if="loading" class="text-muted">Cargando…</p>
 

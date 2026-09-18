@@ -4,6 +4,7 @@ import { ejemplaresAPI, librosAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import { useCan } from '../composables/useCan'
+import ReportButton from '../components/ReportButton.vue'
 
 const can = useCan()
 const toast = useToast()
@@ -101,6 +102,7 @@ onMounted(() => {
         <h2>Gestión de ejemplares</h2>
         <p class="text-muted" style="margin:0">Copias físicas de cada libro y su estado.</p>
       </div>
+      <ReportButton seccion="ejemplares" :filtros="filters" />
     </div>
 
     <div class="card">

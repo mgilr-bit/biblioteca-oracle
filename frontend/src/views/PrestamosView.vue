@@ -6,6 +6,7 @@ import { useToast } from "../composables/useToast";
 import { useConfirm } from "../composables/useConfirm";
 import { useCan } from "../composables/useCan";
 import AppModal from "../components/AppModal.vue";
+import ReportButton from "../components/ReportButton.vue";
 
 const auth = useAuthStore();
 const can = useCan();
@@ -158,13 +159,24 @@ onMounted(() => loadTab("todos"));
   <div class="stack">
     <div class="page-header">
       <h2>Gestión de préstamos</h2>
-      <button
-        v-can:create="'Prestamo'"
-        class="btn btn-primary"
-        @click="openModal"
-      >
-        + Nuevo préstamo
-      </button>
+      <div class="cluster">
+        <ReportButton
+          seccion="prestamos"
+          :filtros="{
+            vista: activeTab,
+            fecha_prestamo: filters.fechaPrestamo,
+            fecha_devolucion: filters.fechaDevolucion,
+            libro: filters.libro,
+          }"
+        />
+        <button
+          v-can:create="'Prestamo'"
+          class="btn btn-primary"
+          @click="openModal"
+        >
+          + Nuevo préstamo
+        </button>
+      </div>
     </div>
 
     <div class="card">

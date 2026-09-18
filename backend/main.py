@@ -28,6 +28,7 @@ from routers import (
     multa_router,
     notificacion_router,
     prestamo_router,
+    reporte_router,
     reserva_router,
     usuario_router,
 )
@@ -121,6 +122,7 @@ app.include_router(notificacion_router, prefix="/api/notificaciones")
 app.include_router(multa_router, prefix="/api/multas")
 app.include_router(auditoria_router, prefix="/api/auditoria")
 app.include_router(analytics_router, prefix="/api/dashboard")
+app.include_router(reporte_router, prefix="/api/reportes")
 
 
 @app.get("/")

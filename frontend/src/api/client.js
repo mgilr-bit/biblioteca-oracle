@@ -76,10 +76,12 @@ export const http = {
       headers: csrfHeader()
     }).then(handle),
 
-  // Para descargas binarias (ej. export CSV) que necesitan el blob crudo
+  // Para descargas binarias (ej. reportes XLSX/CSV) que necesitan el blob crudo.
+  // Los errores pasan por `handle` para conservar el mensaje del backend y el
+  // redirect a /login en 401.
   getBlob: async (path) => {
     const response = await fetch(`${API_URL}${path}`, { credentials: 'include' })
-    if (!response.ok) throw new Error('Error al exportar')
+    if (!response.ok) return handle(response)
     return response.blob()
   }
 }

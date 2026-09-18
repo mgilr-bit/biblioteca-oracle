@@ -1,10 +1,11 @@
 """Repositorio de acceso a datos para la entidad Editorial."""
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy import func
 from sqlmodel import Session, select
 
 from models.editorial import Editorial
+from models.libro import Libro
 from repositories.base import BaseRepository
 
 
@@ -33,6 +34,14 @@ class EditorialRepository(BaseRepository[Editorial]):
             .order_by(Editorial.nombre)
         )
         return list(self.session.exec(stmt))
+
+    def contar_libros_por_editorial(self) -> Dict[int, int]:
+        stmt = (
+            select(Libro.id_editorial, func.count(Libro.id_libro))
+            .where(Libro.is_deleted == False, Libro.id_editorial.is_not(None))  # noqa: E712
+            .group_by(Libro.id_editorial)
+        )
+        return {id_editorial: total for id_editorial, total in self.session.execute(stmt).all()}
 
     def get_by_nombre(self, nombre: str) -> Optional[Editorial]:
         stmt = (

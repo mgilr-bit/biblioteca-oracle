@@ -7,6 +7,7 @@ from .libro_router import router as libro_router
 from .multa_router import router as multa_router
 from .notificacion_router import router as notificacion_router
 from .prestamo_router import router as prestamo_router
+from .reporte_router import router as reporte_router
 from .reserva_router import router as reserva_router
 from .usuario_router import router as usuario_router
 
@@ -20,6 +21,7 @@ __all__ = [
     "multa_router",
     "notificacion_router",
     "prestamo_router",
+    "reporte_router",
     "reserva_router",
     "usuario_router",
 ]

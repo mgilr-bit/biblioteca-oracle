@@ -18,7 +18,12 @@ const routes = [
     name: 'libros',
     component: () => import('../views/LibrosView.vue')
   },
-{
+  {
+    path: '/editoriales',
+    name: 'editoriales',
+    component: () => import('../views/EditorialesView.vue')
+  },
+  {
     path: '/auditoria',
     name: 'auditoria',
     component: () => import('../views/AuditoriaView.vue'),
@@ -54,11 +59,6 @@ const routes = [
     path: '/prestamos',
     name: 'prestamos',
     component: () => import('../views/PrestamosView.vue')
-  },
-  {
-    path: '/multas',
-    name: 'multas',
-    component: () => import('../views/MultasView.vue')
   },
   {
     path: '/usuarios',

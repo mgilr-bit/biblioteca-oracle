@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { notificacionesAPI } from '../api'
 import { useToast } from '../composables/useToast'
+import ReportButton from '../components/ReportButton.vue'
 
 const toast = useToast()
 const notificaciones = ref([])
@@ -57,13 +58,16 @@ onMounted(load)
         <h2>Mis notificaciones</h2>
         <p class="text-muted" style="margin:0">Recordatorios de devolución, vencimientos y avisos del sistema.</p>
       </div>
-      <button
-        v-if="notificaciones.some((n) => !n.LEIDA)"
-        class="btn btn-outline"
-        @click="marcarTodas"
-      >
-        Marcar todas como leídas
-      </button>
+      <div class="cluster">
+        <button
+          v-if="notificaciones.some((n) => !n.LEIDA)"
+          class="btn btn-outline"
+          @click="marcarTodas"
+        >
+          Marcar todas como leídas
+        </button>
+        <ReportButton seccion="notificaciones" />
+      </div>
     </div>
 
     <div class="card">

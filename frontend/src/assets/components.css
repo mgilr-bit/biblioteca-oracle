@@ -532,6 +532,49 @@ table.data .cell-empty {
 .toast-enter-active, .toast-leave-active { transition: all 0.2s ease; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateX(12px); }
 
+/* --- Menú desplegable (ej. botón de reportes) --- */
+.menu {
+  position: relative;
+  display: inline-block;
+}
+
+.menu__caret {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.menu__panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 250px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  padding: var(--space-1);
+  z-index: 60;
+}
+
+.menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover, .menu__item:focus-visible { background: var(--surface-alt); }
+.menu__item-label { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+.menu__item-hint { font-size: 0.74rem; color: var(--ink-muted); }
+
 /* --- Utilidades de layout --- */
 .page-header {
   display: flex;
