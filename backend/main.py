@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import JSONResponse
@@ -94,6 +95,43 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(ServiceError)
 async def service_error_handler(request: Request, exc: ServiceError):
     return JSONResponse(status_code=exc.status_code, content={"error": str(exc)})
+
+
+# Traducciones de los errores de Pydantic más frecuentes: sin esto el 422
+# llega en inglés y con una forma (`detail` como lista) que el frontend no
+# sabe leer, por lo que el usuario solo veía "Error en la solicitud".
+def _caracteres(cantidad) -> str:
+    return "1 carácter" if int(cantidad) == 1 else f"{cantidad} caracteres"
+
+
+_VALIDACION_TEXTOS = {
+    "missing": lambda ctx: "es un campo requerido",
+    "string_too_short": lambda ctx: f"es demasiado corto (mínimo {_caracteres(ctx['min_length'])})",
+    "string_too_long": lambda ctx: f"es demasiado largo (máximo {_caracteres(ctx['max_length'])})",
+    "value_error": lambda ctx: "tiene un formato inválido",
+    "literal_error": lambda ctx: "tiene un valor no permitido",
+    "int_parsing": lambda ctx: "debe ser un número entero",
+    "greater_than_equal": lambda ctx: f"debe ser mayor o igual a {ctx['ge']}",
+}
+
+
+def _describir_error_validacion(error: dict) -> str:
+    campo = ".".join(str(parte) for parte in error["loc"] if parte not in ("body", "query"))
+    plantilla = _VALIDACION_TEXTOS.get(error["type"])
+    try:
+        texto = plantilla(error.get("ctx", {})) if plantilla else error["msg"]
+    except (KeyError, TypeError, ValueError):
+        # Pydantic no garantiza las claves de `ctx` entre versiones: si la
+        # plantilla no encaja, el mensaje original es mejor que un 500.
+        texto = error["msg"]
+    return f"{campo}: {texto}" if campo else texto
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    # Mismo contrato `{"error": ...}` que el resto de la API.
+    detalles = "; ".join(_describir_error_validacion(error) for error in exc.errors())
+    return JSONResponse(status_code=422, content={"error": detalles or GenericMessages.ERROR_INTERNO})
 
 
 @app.exception_handler(Exception)

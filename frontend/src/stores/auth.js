@@ -23,7 +23,8 @@ export const useAuthStore = defineStore('auth', {
     },
     isBibliotecario() {
       return this.ability.can('manage', 'all')
-    }
+    },
+    isAdmin: (state) => state.user?.rol === 'ADMIN'
   },
 
   actions: {

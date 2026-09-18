@@ -20,7 +20,6 @@ class AuthMessages:
 
 class UsuarioMessages:
     NOT_FOUND = "Usuario no encontrado"
-    REGISTRO_CAMPOS_REQUERIDOS = "Nombre, email y contraseña son requeridos"
     ADMIN_CAMPOS_REQUERIDOS = "Nombre, email, contraseña y rol son requeridos"
     UPDATE_CAMPOS_REQUERIDOS = "Nombre, email y rol son requeridos"
     EMAIL_DUPLICADO = "El email ya está registrado"

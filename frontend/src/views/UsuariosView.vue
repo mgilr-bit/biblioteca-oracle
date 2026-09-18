@@ -27,6 +27,20 @@ const filtrados = computed(() => {
   })
 })
 
+// Un sello de color por rol: antes ADMIN, PROFESOR y LECTOR compartían el
+// mismo azul y solo BIBLIOTECARIO se distinguía. El color sigue el nivel de
+// privilegio (rojo → ámbar → verde → azul); `neutral` cubre roles futuros.
+const STAMP_POR_ROL = {
+  ADMIN: 'stamp-danger',
+  BIBLIOTECARIO: 'stamp-warning',
+  PROFESOR: 'stamp-success',
+  LECTOR: 'stamp-info'
+}
+
+function stampRol(rol) {
+  return STAMP_POR_ROL[rol] || 'stamp-neutral'
+}
+
 async function loadUsuarios() {
   loading.value = true
   try {
@@ -67,6 +81,12 @@ async function saveUsuario() {
   }
   if (!editingId.value && !form.value.password) {
     toast.error('La contraseña es requerida para nuevos usuarios')
+    return
+  }
+  // El backend exige 8 caracteres (NIST SP 800-63B); validarlo aquí evita
+  // un 422 y da el motivo exacto sin ir al servidor.
+  if (!editingId.value && form.value.password.length < 8) {
+    toast.error('La contraseña debe tener al menos 8 caracteres')
     return
   }
 
@@ -144,7 +164,9 @@ onMounted(loadUsuarios)
           <input v-model="filtro.nombre" class="input" placeholder="Buscar por nombre o email…" />
           <select v-model="filtro.rol" class="select">
             <option value="">Todos los roles</option>
+            <option value="ADMIN">Administradores</option>
             <option value="BIBLIOTECARIO">Bibliotecarios</option>
+            <option value="PROFESOR">Profesores</option>
             <option value="LECTOR">Lectores</option>
           </select>
           <select v-model="filtro.estado" class="select">
@@ -171,7 +193,7 @@ onMounted(loadUsuarios)
               <td>{{ u.NOMBRE }}</td>
               <td>{{ u.EMAIL }}</td>
               <td>
-                <span class="stamp" :class="u.ROL === 'BIBLIOTECARIO' ? 'stamp-danger' : 'stamp-info'">
+                <span class="stamp" :class="stampRol(u.ROL)">
                   {{ u.ROL }}
                 </span>
               </td>
@@ -223,13 +245,14 @@ onMounted(loadUsuarios)
         </div>
         <div class="field" v-if="!editingId">
           <label for="password">Contraseña *</label>
-          <input id="password" v-model="form.password" type="password" class="input" minlength="6" />
-          <small class="hint">Mínimo 6 caracteres</small>
+          <input id="password" v-model="form.password" type="password" class="input" minlength="8" required />
+          <small class="hint">Mínimo 8 caracteres</small>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="rol">Rol *</label>
           <select id="rol" v-model="form.rol" class="select" required>
             <option value="LECTOR">Lector</option>
+            <option value="PROFESOR">Profesor</option>
             <option value="BIBLIOTECARIO">Bibliotecario</option>
           </select>
           <small class="hint">Los bibliotecarios tienen acceso administrativo completo</small>

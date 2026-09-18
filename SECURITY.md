@@ -98,7 +98,7 @@ CORS(app, resources={
 - Login exitoso/fallido
 - Intentos de login con email no existente
 - Intentos de login con contraseña incorrecta
-- Registros de nuevos usuarios
+- Altas de usuarios creadas por un BIBLIOTECARIO/ADMIN
 - Errores de autenticación
 - Errores internos del servidor
 
@@ -151,7 +151,6 @@ Plantilla para configuración sin datos sensibles
 | Endpoint | Público | LECTOR | BIBLIOTECARIO |
 |----------|---------|--------|---------------|
 | POST /api/auth/login | ✅ | ✅ | ✅ |
-| POST /api/auth/register | ✅ | ✅ | ✅ |
 | GET /api/libros/ | ❌ | ✅ | ✅ |
 | GET /api/libros/<id> | ❌ | ✅ | ✅ |
 | GET /api/libros/search | ❌ | ✅ | ✅ |

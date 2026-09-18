@@ -35,7 +35,13 @@ async function handle(response) {
   const data = contentType.includes('application/json') ? await response.json() : null
 
   if (!response.ok) {
-    throw new Error(data?.error || 'Error en la solicitud')
+    // `error` es el contrato normal de la API; `detail` es el formato crudo
+    // de FastAPI (string, o lista de errores de Pydantic en un 422) y queda
+    // como respaldo para que nunca se pierda el motivo real del fallo.
+    const detail = Array.isArray(data?.detail)
+      ? data.detail.map((d) => d.msg).filter(Boolean).join('; ')
+      : data?.detail
+    throw new Error(data?.error || detail || 'Error en la solicitud')
   }
 
   return data

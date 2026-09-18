@@ -6,7 +6,7 @@
 import { AbilityBuilder, createMongoAbility } from '@casl/ability'
 
 export function buildAbilityFor(user) {
-  const { can, build } = new AbilityBuilder(createMongoAbility)
+  const { can, cannot, build } = new AbilityBuilder(createMongoAbility)
 
   if (!user) {
     return build()
@@ -17,6 +17,12 @@ export function buildAbilityFor(user) {
   // backend; aquí solo se usa para mostrar/ocultar UI.
   if (user.rol === 'ADMIN' || user.rol === 'BIBLIOTECARIO') {
     can('manage', 'all')
+    // La bitácora de auditoría es exclusiva del ADMIN: registra lo que hace
+    // el propio equipo de biblioteca, así que un BIBLIOTECARIO no la ve.
+    // El backend lo revalida (política Casbin retirada en REVOKED_POLICIES).
+    if (user.rol !== 'ADMIN') {
+      cannot('read', 'Auditoria')
+    }
   } else {
     // PROFESOR comparte exactamente el mismo alcance que LECTOR por
     // decisión de producto (2026-09-05): perfil, préstamos propios, lectura.

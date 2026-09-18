@@ -9,7 +9,7 @@ from core.messages import AuthMessages
 from core.sessions import derive_csrf_token
 
 _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-_EXEMPT_PATHS = {"/api/auth/login", "/api/auth/register"}
+_EXEMPT_PATHS = {"/api/auth/login"}
 
 
 async def csrf_middleware(request: Request, call_next):

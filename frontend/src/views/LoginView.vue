@@ -9,10 +9,7 @@ const router = useRouter();
 const auth = useAuthStore();
 const toast = useToast();
 
-const tab = ref("login");
-
 const loginForm = ref({ email: "", password: "" });
-const registerForm = ref({ nombre: "", email: "", password: "" });
 
 const loading = ref(false);
 
@@ -31,25 +28,6 @@ async function handleLogin() {
     loading.value = false;
   }
 }
-
-async function handleRegister() {
-  loading.value = true;
-  try {
-    await authAPI.register(
-      registerForm.value.nombre,
-      registerForm.value.email,
-      registerForm.value.password,
-      "LECTOR",
-    );
-    toast.success("Registro exitoso. Ahora puedes iniciar sesión.");
-    registerForm.value = { nombre: "", email: "", password: "" };
-    tab.value = "login";
-  } catch (error) {
-    toast.error(error.message);
-  } finally {
-    loading.value = false;
-  }
-}
 </script>
 
 <template>
@@ -62,28 +40,7 @@ async function handleRegister() {
           <p class="text-muted">Gestión de inventario y préstamos</p>
         </div>
 
-        <div class="auth-tabs">
-          <button
-            class="auth-tab"
-            :class="{ 'is-active': tab === 'login' }"
-            @click="tab = 'login'"
-          >
-            Iniciar sesión
-          </button>
-          <button
-            class="auth-tab"
-            :class="{ 'is-active': tab === 'register' }"
-            @click="tab = 'register'"
-          >
-            Registro
-          </button>
-        </div>
-
-        <form
-          v-if="tab === 'login'"
-          class="stack"
-          @submit.prevent="handleLogin"
-        >
+        <form class="stack" @submit.prevent="handleLogin">
           <div class="field">
             <label for="loginEmail">Email</label>
             <input
@@ -113,55 +70,10 @@ async function handleRegister() {
             {{ loading ? "Entrando…" : "Iniciar sesión" }}
           </button>
 
-          <div class="notice notice-info">
-            <div>
-              <strong>Usuarios de prueba</strong><br />
-              Admin: admin@biblioteca.com / admin123<br />
-              Lector: juan@email.com / lector123
-            </div>
-          </div>
-        </form>
-
-        <form v-else class="stack" @submit.prevent="handleRegister">
-          <div class="field">
-            <label for="regNombre">Nombre completo</label>
-            <input
-              id="regNombre"
-              v-model="registerForm.nombre"
-              type="text"
-              class="input"
-              required
-            />
-          </div>
-          <div class="field">
-            <label for="regEmail">Email</label>
-            <input
-              id="regEmail"
-              v-model="registerForm.email"
-              type="email"
-              class="input"
-              required
-            />
-          </div>
-          <div class="field" style="margin-bottom: 0">
-            <label for="regPassword">Contraseña</label>
-            <input
-              id="regPassword"
-              v-model="registerForm.password"
-              type="password"
-              class="input"
-              required
-              minlength="6"
-            />
-          </div>
-          <button
-            class="btn btn-primary"
-            style="width: 100%; justify-content: center"
-            :disabled="loading"
-            type="submit"
-          >
-            {{ loading ? "Creando cuenta…" : "Registrarse" }}
-          </button>
+          <p class="auth-note text-muted">
+            El acceso es exclusivo para la comunidad universitaria. Si no tienes
+            cuenta, solicítala a la universidad.
+          </p>
         </form>
       </div>
     </div>
@@ -223,30 +135,10 @@ async function handleRegister() {
   border-radius: 2px;
 }
 
-.auth-tabs {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px;
-  margin-bottom: var(--space-5);
-  background: var(--surface-alt);
-}
-
-.auth-tab {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 0.5rem;
-  border-radius: 3px;
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--ink-muted);
-  cursor: pointer;
-}
-
-.auth-tab.is-active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-card);
+.auth-note {
+  margin: 0;
+  text-align: center;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 </style>

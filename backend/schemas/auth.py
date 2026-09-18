@@ -7,12 +7,6 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=72)
 
 
-class RegisterRequest(BaseModel):
-    nombre: str = Field(min_length=1, max_length=100)
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=72)
-
-
 class SessionUserResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 

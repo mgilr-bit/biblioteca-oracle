@@ -27,6 +27,13 @@ _CasbinBase = declarative_base()
 
 
 class OracleCasbinRule(_CasbinBase):
+    # PENDIENTE: la CasbinRule de la librería define `__str__` ("p, v0, v1, …")
+    # y el adapter lo usa para reconstruir cada política al cargar. Esta clase
+    # no lo hereda (se declara desde cero sobre otra Base), así que
+    # `load_policy()` no reconstruye ninguna regla y devuelve 0 políticas.
+    # Consecuencia: el arranque re-siembra DEFAULT_POLICIES sobre una tabla
+    # que cree vacía y `save_policy()` la reescribe completa, por lo que
+    # cualquier política agregada a mano en `casbin_rule` se pierde.
     __tablename__ = "casbin_rule"
 
     id = Column(Integer, Identity(always=True), primary_key=True)
@@ -110,11 +117,26 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
     ("LECTOR", "Multa", "read", "true"),
     ("PROFESOR", "Multa", "read", "true"),
-    # Auditoría: historial de eventos clave, consultable solo por el equipo de
-    # biblioteca (BIBLIOTECARIO/ADMIN). LECTOR/PROFESOR no tienen visibilidad.
-    ("BIBLIOTECARIO", "Auditoria", "read", "false"),
+    # Auditoría: la bitácora es exclusiva del ADMIN (cubierto por su política
+    # comodín). Ningún otro rol —BIBLIOTECARIO incluido— la consulta: es el
+    # registro que deja constancia de lo que hace el propio equipo.
     # Analítica OLAP: dashboard de métricas, solo BIBLIOTECARIO/ADMIN.
     ("BIBLIOTECARIO", "Analitica", "read", "false"),
+]
+
+# Políticas retiradas de DEFAULT_POLICIES que deben desaparecer también de
+# las instalaciones ya sembradas: `ensure_default_policies` solo agrega, así
+# que sin esta lista la fila seguiría viva en `casbin_rule` concediendo un
+# acceso que ya se revocó.
+#
+# Hoy actúa como red de seguridad y no llega a ejecutarse: `load_policy()`
+# no lee ninguna fila (ver la nota de `__str__` en OracleCasbinRule), por lo
+# que `save_policy()` reescribe la tabla entera en cada arranque y la fila
+# obsoleta no se regenera. En cuanto esa lectura funcione, esta lista es lo
+# único que evita que un permiso revocado reviva.
+REVOKED_POLICIES = [
+    # Auditoría pasó a ser exclusiva del ADMIN (2026-09-17).
+    ("BIBLIOTECARIO", "Auditoria", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
@@ -135,4 +157,10 @@ def ensure_default_policies() -> None:
         if policy not in existing:
             enforcer.add_policy(*policy)
             existing.add(policy)
+
+    for policy in REVOKED_POLICIES:
+        if policy in existing:
+            enforcer.remove_policy(*policy)
+            existing.discard(policy)
+
     enforcer.save_policy()

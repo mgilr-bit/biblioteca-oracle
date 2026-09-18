@@ -153,7 +153,12 @@ Después de ejecutar `init_data.py`:
 ### Autenticación
 
 - `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/register` - Registrar usuario
+- `POST /api/auth/logout` - Cerrar sesión
+- `GET /api/auth/me` - Datos de la sesión activa
+
+> No existe alta pública de cuentas: el sistema es de uso interno de la
+> biblioteca universitaria. Las cuentas las crea un BIBLIOTECARIO/ADMIN con
+> `POST /api/usuarios/admin`.
 
 ### Libros (requiere autenticación)
 
@@ -225,7 +230,7 @@ biblioteca-oracle/
 │   │   ├── dashboard.html     # Dashboard
 │   │   ├── libros.html        # Gestión de libros
 │   │   └── prestamos.html     # Gestión de préstamos
-│   └── index.html             # Login/Registro
+│   └── index.html             # Login
 ├── .env                       # Variables de entorno
 ├── .gitignore                 # Archivos ignorados
 └── README.md                  # Esta documentación

@@ -27,7 +27,7 @@ const routes = [
     path: '/auditoria',
     name: 'auditoria',
     component: () => import('../views/AuditoriaView.vue'),
-    meta: { requiresBibliotecario: true }
+    meta: { requiresAdmin: true }
   },
   {
     path: '/analitica',
@@ -93,6 +93,12 @@ router.beforeEach((to) => {
   // accesible por URL directa, mostrando solo un alert() tardío). Ahora la
   // ruta ni siquiera se resuelve si el rol no es BIBLIOTECARIO.
   if (to.meta.requiresBibliotecario && !auth.isBibliotecario) {
+    return { name: 'dashboard' }
+  }
+
+  // Auditoría es exclusiva del ADMIN: sin esto, un BIBLIOTECARIO al que se
+  // le ocultó el link seguiría entrando escribiendo /auditoria en la URL.
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
     return { name: 'dashboard' }
   }
 

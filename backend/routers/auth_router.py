@@ -1,4 +1,8 @@
-"""Router de autenticación: login/registro emiten cookie de sesión + CSRF."""
+"""Router de autenticación: el login emite cookie de sesión + CSRF.
+
+No hay alta pública de cuentas: la biblioteca es de acceso restringido y
+los usuarios los crea un BIBLIOTECARIO/ADMIN vía `POST /api/usuarios/admin`.
+"""
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -12,7 +16,7 @@ from core.rate_limit import limiter
 from core.sessions import create_session, derive_csrf_token, revoke_session
 from dependencies.auth import get_current_user
 from models.usuario import Usuario
-from schemas.auth import LoginRequest, LoginResponse, RegisterRequest, SessionUserResponse
+from schemas.auth import LoginRequest, LoginResponse, SessionUserResponse
 from schemas.common import MessageResponse
 from services.auth_service import AuthService
 from services.exceptions import AuthError
@@ -27,11 +31,6 @@ def _do_login(email: str, password: str) -> Usuario:
         usuario = AuthService(session).login(email, password)
         session.expunge(usuario)  # desprende la entidad de la sesión que está por cerrarse
         return usuario
-
-
-def _do_register(nombre: str, email: str, password: str) -> dict:
-    with get_session() as session:
-        return AuthService(session).register(nombre, email, password)
 
 
 def _set_session_cookies(response: Response, sid: str) -> None:
@@ -87,12 +86,6 @@ async def login(request: Request, response: Response, body: LoginRequest):
         id=usuario.id_usuario, nombre=usuario.nombre, email=usuario.email, rol=usuario.rol
     )
     return LoginResponse(success=True, user=user_response, message="Login exitoso")
-
-
-@router.post("/register", response_model=MessageResponse, status_code=201)
-@limiter.limit(settings.RATE_LIMIT_AUTH)
-async def register(request: Request, body: RegisterRequest):
-    return await run_in_threadpool(_do_register, body.nombre, body.email, body.password)
 
 
 @router.get("/me", response_model=SessionUserResponse)
