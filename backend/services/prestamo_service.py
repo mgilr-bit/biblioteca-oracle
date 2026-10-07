@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from core.messages import PrestamoMessages
+from core.roles import puede_operar_por_terceros
 from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
@@ -72,10 +73,11 @@ class PrestamoService(BaseService[Prestamo]):
         ]
 
     def create(self, id_libro: int, id_usuario: Optional[int], dias_prestamo, requesting_user) -> dict:
-        # SEGURIDAD: un LECTOR solo puede pedir prestado para sí mismo, sin
-        # importar qué id_usuario mande en el body (mismo patrón que el rol
-        # forzado en AuthService.register).
-        if requesting_user.rol != "BIBLIOTECARIO":
+        # SEGURIDAD: un LECTOR/PROFESOR solo puede pedir prestado para sí
+        # mismo, sin importar qué id_usuario mande en el body (mismo patrón
+        # que el rol forzado en AuthService.register). BIBLIOTECARIO y ADMIN
+        # sí prestan a nombre de otro.
+        if not puede_operar_por_terceros(requesting_user.rol):
             id_usuario = requesting_user.id
         elif not id_usuario:
             raise ValidationError(PrestamoMessages.CAMPOS_REQUERIDOS)

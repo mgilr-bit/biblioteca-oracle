@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from core.messages import ReservaMessages
+from core.roles import puede_operar_por_terceros
 from models.reserva import Reserva
 from repositories.libro_repository import LibroRepository
 from repositories.reserva_repository import ReservaRepository
@@ -64,8 +65,8 @@ class ReservaService(BaseService[Reserva]):
 
     def create(self, id_libro: int, id_usuario: Optional[int], requesting_user) -> dict:
         # SEGURIDAD: un LECTOR/PROFESOR solo reserva para sí mismo (patrón del
-        # módulo de préstamos); el bibliotecario puede reservar a nombre de otro.
-        if requesting_user.rol != "BIBLIOTECARIO":
+        # módulo de préstamos); BIBLIOTECARIO y ADMIN reservan a nombre de otro.
+        if not puede_operar_por_terceros(requesting_user.rol):
             id_usuario = requesting_user.id
         elif not id_usuario:
             raise ValidationError(ReservaMessages.ID_USUARIO_REQUERIDO)
