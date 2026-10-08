@@ -67,21 +67,6 @@ async function pagar(multa) {
   }
 }
 
-async function condonar(multa) {
-  const ok = await ask(
-    `¿Condonar la multa de ${money(multa.MONTO)} de ${multa.NOMBRE_USUARIO}?`,
-    { title: 'Condonar multa' }
-  )
-  if (!ok) return
-  try {
-    const res = await multasAPI.condonar(multa.ID_MULTA)
-    toast.success(res.message || 'Multa condonada')
-    load()
-  } catch (error) {
-    toast.error('Error: ' + error.message)
-  }
-}
-
 onMounted(() => load())
 </script>
 
@@ -141,7 +126,6 @@ onMounted(() => load())
               <td v-if="auth.isBibliotecario">
                 <div v-if="m.ESTADO === 'PENDIENTE'" class="cluster">
                   <button class="btn btn-success btn-sm" @click="pagar(m)">Cobrar</button>
-                  <button class="btn btn-outline btn-sm" @click="condonar(m)">Condonar</button>
                 </div>
                 <span v-else class="text-muted" style="font-size:0.8rem">
                   {{ m.ESTADO === 'PAGADA' ? `Pagada ${fecha(m.FECHA_PAGO)}` : 'Condonada' }}

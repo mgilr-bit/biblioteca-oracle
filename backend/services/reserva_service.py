@@ -10,11 +10,12 @@ Reglas de producto (plan de fases):
 * Un LECTOR/PROFESOR solo puede cancelar sus propias reservas (ABAC por
   dueño en el router); el bibliotecario gestiona cualquiera.
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import List, Optional
 
 from core.messages import ReservaMessages
 from core.roles import puede_operar_por_terceros
+from core.zona_horaria import ahora_utc
 from models.reserva import Reserva
 from repositories.libro_repository import LibroRepository
 from repositories.reserva_repository import ReservaRepository
@@ -133,7 +134,7 @@ class ReservaService(BaseService[Reserva]):
             return None
         reserva = fila[0]
         reserva.estado = "CUMPLIDA"
-        reserva.fecha_expiracion = datetime.now() + timedelta(days=DIAS_VALIDEZ)
+        reserva.fecha_expiracion = ahora_utc() + timedelta(days=DIAS_VALIDEZ)
         self.repository.mark_updated(reserva, actor="prestamo")
         self.repository.flush()
         return reserva

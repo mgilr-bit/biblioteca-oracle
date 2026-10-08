@@ -1,8 +1,9 @@
 """Repositorio de acceso a datos para la entidad Prestamo."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sqlmodel import Session, select
 
+from core.zona_horaria import ahora_utc
 from models.ejemplar import Ejemplar
 from models.libro import Libro
 from models.prestamo import Prestamo
@@ -48,7 +49,7 @@ class PrestamoRepository(BaseRepository[Prestamo]):
             self._query_with_details()
             .where(
                 Prestamo.estado == "ACTIVO",
-                Prestamo.fecha_devolucion_esperada < datetime.now(),
+                Prestamo.fecha_devolucion_esperada < ahora_utc(),
             )
             .order_by(Prestamo.fecha_devolucion_esperada)
         )
@@ -58,12 +59,12 @@ class PrestamoRepository(BaseRepository[Prestamo]):
         """Préstamos ACTIVO cuya devolución cae dentro de `dias` días (para
         el job de recordatorios). Devuelve tuplas (id_prestamo, id_usuario,
         fecha_devolucion_esperada)."""
-        corte = datetime.now() + timedelta(days=dias)
+        corte = ahora_utc() + timedelta(days=dias)
         stmt = (
             select(Prestamo.id_prestamo, Prestamo.id_usuario, Prestamo.fecha_devolucion_esperada)
             .where(
                 Prestamo.estado == "ACTIVO",
-                Prestamo.fecha_devolucion_esperada >= datetime.now(),
+                Prestamo.fecha_devolucion_esperada >= ahora_utc(),
                 Prestamo.fecha_devolucion_esperada <= corte,
             )
             .order_by(Prestamo.fecha_devolucion_esperada)
@@ -76,7 +77,7 @@ class PrestamoRepository(BaseRepository[Prestamo]):
             select(Prestamo.id_prestamo, Prestamo.id_usuario, Prestamo.fecha_devolucion_esperada)
             .where(
                 Prestamo.estado == "ACTIVO",
-                Prestamo.fecha_devolucion_esperada < datetime.now(),
+                Prestamo.fecha_devolucion_esperada < ahora_utc(),
             )
             .order_by(Prestamo.fecha_devolucion_esperada)
         )

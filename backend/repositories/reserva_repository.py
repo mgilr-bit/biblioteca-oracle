@@ -1,10 +1,10 @@
 """Repositorio de acceso a datos para la entidad Reserva."""
-from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import func
 from sqlmodel import Session, select
 
+from core.zona_horaria import ahora_utc
 from models.libro import Libro
 from models.reserva import Reserva
 from models.usuario import Usuario
@@ -72,7 +72,7 @@ class ReservaRepository(BaseRepository[Reserva]):
                 Reserva.is_deleted == False,  # noqa: E712
                 Reserva.estado == "CUMPLIDA",
                 Reserva.fecha_expiracion.is_not(None),
-                Reserva.fecha_expiracion < datetime.now(),
+                Reserva.fecha_expiracion < ahora_utc(),
             )
             .order_by(Reserva.fecha_expiracion)
         )

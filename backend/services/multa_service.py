@@ -3,12 +3,12 @@
 Regla: multa fija de TARIFA_MULTA_ATRASO (Q35) generada automáticamente por
 PrestamoService cuando la devolución ocurre después de la fecha esperada. Una
 multa en PENDIENTE bloquea la creación de nuevos préstamos para el usuario
-hasta que un BIBLIOTECARIO la marque como PAGADA o CONDONADA.
+hasta que un BIBLIOTECARIO la marque como PAGADA.
 """
-from datetime import datetime
 from typing import List, Optional
 
 from core.messages import MultaMessages, PrestamoMessages
+from core.zona_horaria import ahora_utc
 from models.multa import Multa
 from models.prestamo import Prestamo
 from repositories.multa_repository import MultaRepository
@@ -64,7 +64,7 @@ class MultaService(BaseService[Multa]):
         pendiente para ese préstamo (idempotente). Devuelve la multa o None."""
         if not prestamo.fecha_devolucion_esperada:
             return None
-        momento_devolucion = prestamo.fecha_devolucion_real or datetime.now()
+        momento_devolucion = prestamo.fecha_devolucion_real or ahora_utc()
         dias = (momento_devolucion - prestamo.fecha_devolucion_esperada).days
         if dias <= 0:
             return None
@@ -87,7 +87,7 @@ class MultaService(BaseService[Multa]):
         if multa.estado != "PENDIENTE":
             raise ValidationError(MultaMessages.NO_PENDIENTE)
         multa.estado = "PAGADA"
-        multa.fecha_pago = datetime.now()
+        multa.fecha_pago = ahora_utc()
         self.repository.mark_updated(multa, actor=actor)
         self.repository.flush()
 
@@ -99,21 +99,3 @@ class MultaService(BaseService[Multa]):
             detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
         )
         return {"success": True, "message": MultaMessages.PAGADA_OK}
-
-    def condonar(self, id_multa: int, actor: str) -> dict:
-        multa = self.get_by_id(id_multa)
-        if multa.estado != "PENDIENTE":
-            raise ValidationError(MultaMessages.NO_PENDIENTE)
-        multa.estado = "CONDONADA"
-        multa.fecha_pago = None
-        self.repository.mark_updated(multa, actor=actor)
-        self.repository.flush()
-
-        AuditoriaService(self.repository.session).registrar(
-            "MULTA_CONDONADA",
-            "Multa",
-            email=actor,
-            id_recurso=multa.id_multa,
-            detalle=f"Multa de Q{multa.monto} del préstamo #{multa.id_prestamo}",
-        )
-        return {"success": True, "message": MultaMessages.CONDONADA_OK}

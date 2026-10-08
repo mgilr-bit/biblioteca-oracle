@@ -84,8 +84,7 @@ export const multasAPI = {
   getAll: () => http.get('/multas/'),
   getPendientes: () => http.get('/multas/pendientes'),
   getByUsuario: (idUsuario) => http.get(`/multas/usuario/${idUsuario}`),
-  pagar: (id) => http.put(`/multas/${id}/pagar`),
-  condonar: (id) => http.put(`/multas/${id}/condonar`)
+  pagar: (id) => http.put(`/multas/${id}/pagar`)
 }
 
 export const prestamosAPI = {

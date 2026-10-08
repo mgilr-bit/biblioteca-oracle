@@ -24,10 +24,16 @@ export function buildAbilityFor(user) {
       cannot('read', 'Auditoria')
     }
   } else {
-    // PROFESOR comparte exactamente el mismo alcance que LECTOR por
-    // decisión de producto (2026-09-05): perfil, préstamos propios, lectura.
+    // PROFESOR comparte el alcance de LECTOR por decisión de producto
+    // (2026-09-05): perfil, préstamos propios, lectura. Única diferencia:
+    // el LECTOR no registra préstamos (QA 2026-10-06).
     can('read', 'Libro')
-    can(['create', 'read'], 'Prestamo', { id_usuario: user.id })
+    // El LECTOR solo consulta sus préstamos; el PROFESOR además los registra.
+    // El backend lo revalida (política Casbin retirada en REVOKED_POLICIES).
+    can('read', 'Prestamo', { id_usuario: user.id })
+    if (user.rol === 'PROFESOR') {
+      can('create', 'Prestamo', { id_usuario: user.id })
+    }
     can('read', 'Multa', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
     can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })

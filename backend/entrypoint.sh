@@ -96,4 +96,7 @@ if [ "${ENV:-development}" = "development" ]; then
     echo "==> [backend] Modo desarrollo (hot-reload)"
     exec uvicorn main:app --reload --host 0.0.0.0 --port "${PORT:-5000}"
 fi
-exec gunicorn -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:"${PORT:-5000}" main:app
+# --timeout 120: el default (30 s) es corto para el primer arranque contra
+# Oracle en la nube (handshake TCPS + siembra de políticas Casbin); al
+# superarlo gunicorn mata al worker antes de que termine el startup.
+exec gunicorn -k uvicorn.workers.UvicornWorker --timeout "${GUNICORN_TIMEOUT:-120}" --bind 0.0.0.0:"${PORT:-5000}" main:app

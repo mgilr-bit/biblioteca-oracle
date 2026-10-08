@@ -1,5 +1,11 @@
-"""Repositorio de métricas OLAP (ejecuta SQL nativo sobre las vistas
-materializadas creadas por la migración 0010)."""
+"""Repositorio de métricas OLAP (SQL nativo de agregación).
+
+Las agregaciones corren en vivo sobre las tablas operativas. Antes se leían
+de las vistas materializadas de la migración 0010 (REFRESH ON DEMAND), pero
+en la base de la nube no hay job que las refresque: quedaron congeladas en
+el snapshot de su creación (vacío) y el dashboard no mostraba nada. Con el
+volumen de una biblioteca universitaria la consulta directa es barata.
+"""
 from sqlalchemy import text
 from sqlmodel import Session
 
@@ -38,8 +44,16 @@ class AnalyticsRepository:
     def prestamos_mensual(self) -> list:
         rows = self.session.execute(
             text(
-                "SELECT anio, mes, total_prestamos, devueltos, activos, vencidos "
-                "FROM V_OLAP_PRESTAMOS_MENSUAL "
+                "SELECT TO_CHAR(fecha_prestamo, 'YYYY') AS anio, "
+                "TO_CHAR(fecha_prestamo, 'MM') AS mes, "
+                "COUNT(*) AS total_prestamos, "
+                "SUM(CASE WHEN estado = 'DEVUELTO' THEN 1 ELSE 0 END) AS devueltos, "
+                "SUM(CASE WHEN estado IN ('ACTIVO', 'VENCIDO') THEN 1 ELSE 0 END) AS activos, "
+                "SUM(CASE WHEN estado = 'VENCIDO' OR (estado = 'ACTIVO' "
+                "AND fecha_devolucion_esperada < SYSDATE) THEN 1 ELSE 0 END) AS vencidos "
+                "FROM prestamos "
+                "WHERE is_deleted = 0 AND fecha_prestamo >= ADD_MONTHS(SYSDATE, -12) "
+                "GROUP BY TO_CHAR(fecha_prestamo, 'YYYY'), TO_CHAR(fecha_prestamo, 'MM') "
                 "ORDER BY anio DESC, mes DESC FETCH FIRST 12 ROWS ONLY"
             )
         ).all()
@@ -58,8 +72,10 @@ class AnalyticsRepository:
     def top_libros(self) -> list:
         rows = self.session.execute(
             text(
-                "SELECT id_libro, titulo, autor, total_prestamos "
-                "FROM V_OLAP_TOP_LIBROS "
+                "SELECT l.id_libro, l.titulo, l.autor, COUNT(*) AS total_prestamos "
+                "FROM prestamos p JOIN libros l ON p.id_libro = l.id_libro "
+                "WHERE p.is_deleted = 0 AND l.is_deleted = 0 "
+                "GROUP BY l.id_libro, l.titulo, l.autor "
                 "ORDER BY total_prestamos DESC FETCH FIRST 10 ROWS ONLY"
             )
         ).all()
@@ -75,15 +91,27 @@ class AnalyticsRepository:
 
     def prestamos_por_genero(self) -> list:
         rows = self.session.execute(
-            text("SELECT genero, total_prestamos FROM V_OLAP_PRESTAMOS_GENERO ORDER BY total_prestamos DESC")
+            text(
+                "SELECT NVL(l.genero, '(sin género)') AS genero, COUNT(*) AS total_prestamos "
+                "FROM prestamos p JOIN libros l ON p.id_libro = l.id_libro "
+                "WHERE p.is_deleted = 0 AND l.is_deleted = 0 "
+                "GROUP BY NVL(l.genero, '(sin género)') "
+                "ORDER BY total_prestamos DESC"
+            )
         ).all()
         return [{"genero": r.genero, "total_prestamos": int(r.total_prestamos)} for r in rows]
 
     def multas_mensual(self) -> list:
         rows = self.session.execute(
             text(
-                "SELECT anio, mes, monto_generado, monto_recaudado, pendientes "
-                "FROM V_OLAP_MULTAS_MENSUAL "
+                "SELECT TO_CHAR(created_at, 'YYYY') AS anio, "
+                "TO_CHAR(created_at, 'MM') AS mes, "
+                "SUM(monto) AS monto_generado, "
+                "SUM(CASE WHEN estado = 'PAGADA' THEN monto ELSE 0 END) AS monto_recaudado, "
+                "SUM(CASE WHEN estado = 'PENDIENTE' THEN 1 ELSE 0 END) AS pendientes "
+                "FROM multas "
+                "WHERE is_deleted = 0 AND created_at >= ADD_MONTHS(SYSDATE, -12) "
+                "GROUP BY TO_CHAR(created_at, 'YYYY'), TO_CHAR(created_at, 'MM') "
                 "ORDER BY anio DESC, mes DESC FETCH FIRST 12 ROWS ONLY"
             )
         ).all()

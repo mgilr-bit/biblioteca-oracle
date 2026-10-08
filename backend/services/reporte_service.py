@@ -16,6 +16,7 @@ from decimal import Decimal
 from typing import Optional
 
 from core.sessions import SessionUser
+from core.zona_horaria import a_local, ahora_utc
 from repositories.auditoria_repository import AuditoriaRepository
 from repositories.editorial_repository import EditorialRepository
 from repositories.ejemplar_repository import EjemplarRepository
@@ -108,7 +109,7 @@ class ReporteService:
         return ReporteResponse(
             seccion=seccion,
             titulo=titulo,
-            generado_en=datetime.now(),
+            generado_en=ahora_utc(),
             generado_por=f"{usuario.nombre} ({usuario.email})",
             **datos,
         )
@@ -343,18 +344,18 @@ class ReporteService:
         elif vista == "vencidos":
             prestamos = [p for p in prestamos if p.estado == "VENCIDO"]
         if fecha_prestamo:
-            prestamos = [p for p in prestamos if p.fecha_prestamo and p.fecha_prestamo.date() == fecha_prestamo]
+            prestamos = [p for p in prestamos if p.fecha_prestamo and a_local(p.fecha_prestamo).date() == fecha_prestamo]
         if fecha_devolucion:
             prestamos = [
                 p for p in prestamos
-                if p.fecha_devolucion_esperada and p.fecha_devolucion_esperada.date() == fecha_devolucion
+                if p.fecha_devolucion_esperada and a_local(p.fecha_devolucion_esperada).date() == fecha_devolucion
             ]
         if libro:
             prestamos = [p for p in prestamos if _contiene(p.titulo, libro)]
         notas: list[str] = []
         prestamos = _truncar(prestamos, notas)
 
-        ahora = datetime.now()
+        ahora = ahora_utc()
         filas = [p.model_dump() | {"dias_retraso": _dias_retraso(p, ahora)} for p in prestamos]
 
         columnas = [_col("id_prestamo", "ID"), _col("titulo", "Libro"), _col("autor", "Autor")]
@@ -665,7 +666,7 @@ class ReporteService:
         )
 
     def dashboard(self, usuario: SessionUser, ver_todo: bool) -> ReporteResponse:
-        ahora = datetime.now()
+        ahora = ahora_utc()
         prestamo_service = PrestamoService(self.session)
         multa_service = MultaService(self.session)
 

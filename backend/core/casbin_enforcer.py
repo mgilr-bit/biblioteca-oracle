@@ -27,13 +27,6 @@ _CasbinBase = declarative_base()
 
 
 class OracleCasbinRule(_CasbinBase):
-    # PENDIENTE: la CasbinRule de la librería define `__str__` ("p, v0, v1, …")
-    # y el adapter lo usa para reconstruir cada política al cargar. Esta clase
-    # no lo hereda (se declara desde cero sobre otra Base), así que
-    # `load_policy()` no reconstruye ninguna regla y devuelve 0 políticas.
-    # Consecuencia: el arranque re-siembra DEFAULT_POLICIES sobre una tabla
-    # que cree vacía y `save_policy()` la reescribe completa, por lo que
-    # cualquier política agregada a mano en `casbin_rule` se pierde.
     __tablename__ = "casbin_rule"
 
     id = Column(Integer, Identity(always=True), primary_key=True)
@@ -44,6 +37,20 @@ class OracleCasbinRule(_CasbinBase):
     v3 = Column(String(255))
     v4 = Column(String(255))
     v5 = Column(String(255))
+
+    # El adapter reconstruye cada política al cargar haciendo `str(fila)` y
+    # parseando "p, v0, v1, …" (mismo formato que la CasbinRule de la
+    # librería). Sin este método `load_policy()` no leía ninguna regla.
+    def __str__(self):
+        valores = [self.ptype]
+        for valor in (self.v0, self.v1, self.v2, self.v3, self.v4, self.v5):
+            if valor is None:
+                break
+            valores.append(valor)
+        return ", ".join(valores)
+
+    def __repr__(self):
+        return f'<CasbinRule {self.id}: "{self}">'
 
 # (rol, subject, act, owner_only)
 DEFAULT_POLICIES = [
@@ -71,12 +78,12 @@ DEFAULT_POLICIES = [
     ("LECTOR", "Usuario", "update", "true"),
     ("PROFESOR", "Usuario", "read", "true"),
     ("PROFESOR", "Usuario", "update", "true"),
-    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR y PROFESOR crean y leen solo los suyos.
+    # Prestamos: BIBLIOTECARIO ve/gestiona todo; PROFESOR crea y lee solo los
+    # suyos; LECTOR solo los consulta (el préstamo se lo registra la biblioteca).
     ("BIBLIOTECARIO", "Prestamo", "read", "false"),
     ("BIBLIOTECARIO", "Prestamo", "create", "false"),
     ("BIBLIOTECARIO", "Prestamo", "devolver", "false"),
     ("LECTOR", "Prestamo", "read", "true"),
-    ("LECTOR", "Prestamo", "create", "false"),
     ("PROFESOR", "Prestamo", "read", "true"),
     ("PROFESOR", "Prestamo", "create", "false"),
     # Editoriales: catálogo legible para todos, gestionable solo por BIBLIOTECARIO/ADMIN.
@@ -111,7 +118,7 @@ DEFAULT_POLICIES = [
     ("LECTOR", "Notificacion", "update", "true"),
     ("PROFESOR", "Notificacion", "read", "true"),
     ("PROFESOR", "Notificacion", "update", "true"),
-    # Multas: BIBLIOTECARIO lee/gestiona todas (cobrar/condonar); LECTOR y
+    # Multas: BIBLIOTECARIO lee/gestiona todas (cobrar); LECTOR y
     # PROFESOR solo ven las suyas (owner_only), sin acciones de gestión.
     ("BIBLIOTECARIO", "Multa", "read", "false"),
     ("BIBLIOTECARIO", "Multa", "gestionar", "false"),
@@ -128,15 +135,11 @@ DEFAULT_POLICIES = [
 # las instalaciones ya sembradas: `ensure_default_policies` solo agrega, así
 # que sin esta lista la fila seguiría viva en `casbin_rule` concediendo un
 # acceso que ya se revocó.
-#
-# Hoy actúa como red de seguridad y no llega a ejecutarse: `load_policy()`
-# no lee ninguna fila (ver la nota de `__str__` en OracleCasbinRule), por lo
-# que `save_policy()` reescribe la tabla entera en cada arranque y la fila
-# obsoleta no se regenera. En cuanto esa lectura funcione, esta lista es lo
-# único que evita que un permiso revocado reviva.
 REVOKED_POLICIES = [
     # Auditoría pasó a ser exclusiva del ADMIN (2026-09-17).
     ("BIBLIOTECARIO", "Auditoria", "read", "false"),
+    # El LECTOR ya no registra préstamos por su cuenta (QA 2026-10-06).
+    ("LECTOR", "Prestamo", "create", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)
@@ -149,18 +152,28 @@ def ensure_default_policies() -> None:
     Es idempotente: en instalaciones nuevas siembra todas, y en instalaciones
     existentes solo agrega las que falten (así nuevos roles/permisos llegan
     sin tener que truncar la tabla ni tocar la BD a mano).
+
+    Con auto-save activo cada `add_policy` es un INSERT + COMMIT propio: contra
+    Oracle en la nube eso son decenas de viajes de red y el arranque superaba
+    el timeout del worker de gunicorn (WORKER TIMEOUT en bucle). Por eso el
+    cálculo se hace en memoria y, solo si algo cambió, se persiste todo en
+    una única transacción con `save_policy()`.
     """
-    enforcer.load_policy()
-    existing = {tuple(policy) for policy in enforcer.get_policy()}
-    for rol, subject, act, owner_only in DEFAULT_POLICIES:
-        policy = (rol, subject, act, owner_only)
-        if policy not in existing:
-            enforcer.add_policy(*policy)
-            existing.add(policy)
+    enforcer.enable_auto_save(False)
+    try:
+        enforcer.load_policy()
+        actuales = [tuple(policy) for policy in enforcer.get_policy()]
+        # dict.fromkeys deduplica conservando el orden (un arranque cortado a
+        # medias con el código anterior pudo dejar filas repetidas).
+        deseadas = list(dict.fromkeys(actuales))
+        presentes = set(deseadas)
+        deseadas += [policy for policy in DEFAULT_POLICIES if policy not in presentes]
+        revocadas = set(REVOKED_POLICIES)
+        deseadas = [policy for policy in deseadas if policy not in revocadas]
 
-    for policy in REVOKED_POLICIES:
-        if policy in existing:
-            enforcer.remove_policy(*policy)
-            existing.discard(policy)
-
-    enforcer.save_policy()
+        if deseadas != actuales:
+            enforcer.clear_policy()
+            enforcer.add_policies([list(policy) for policy in deseadas])
+            enforcer.save_policy()
+    finally:
+        enforcer.enable_auto_save(True)

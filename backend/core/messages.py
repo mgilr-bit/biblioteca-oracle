@@ -88,7 +88,6 @@ class MultaMessages:
     NOT_FOUND = "Multa no encontrada"
     NO_PENDIENTE = "La multa no está pendiente"
     PAGADA_OK = "Multa marcada como pagada"
-    CONDONADA_OK = "Multa condonada"
     MOTIVO_ATRASO = "Devolución con {dias} día(s) de retraso"
 
 

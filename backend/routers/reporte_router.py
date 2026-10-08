@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 from sqlmodel import Session
 
 from core.sessions import SessionUser
+from core.zona_horaria import localizar_fechas
 from dependencies.auth import get_current_user
 from dependencies.db import get_db_session
 from dependencies.rbac import has_permission, require_permission, require_permission_session_owned
@@ -42,7 +43,7 @@ Texto = Query(default="", max_length=100)
 
 def _responder(reporte: ReporteResponse, formato: FormatoReporte, session: Session, user: SessionUser) -> Response:
     if formato == "json":
-        respuesta = JSONResponse(content=jsonable_encoder(reporte))
+        respuesta = JSONResponse(content=localizar_fechas(jsonable_encoder(reporte)))
     else:
         contenido = exportar_xlsx(reporte) if formato == "xlsx" else exportar_csv(reporte)
         respuesta = Response(

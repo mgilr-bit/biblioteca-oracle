@@ -48,7 +48,7 @@ onMounted(async () => {
       <h2>Dashboard analítico</h2>
       <div class="cluster">
         <span v-if="!loading" class="text-muted" style="font-size:0.8rem">
-          Datos OLAP (vistas materializadas, refresco diario)
+          Datos en tiempo real
         </span>
         <ReportButton seccion="analitica" />
       </div>

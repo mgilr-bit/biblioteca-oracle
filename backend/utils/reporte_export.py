@@ -19,6 +19,7 @@ from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from core.zona_horaria import a_local
 from schemas.reporte import ReporteColumna, ReporteResponse, ReporteTabla
 
 # Paleta alineada con el frontend (tokens.css: --accent, --surface-alt, --border).
@@ -40,15 +41,15 @@ _CARACTERES_HOJA_INVALIDOS = re.compile(r"[\[\]:*?/\\]")
 
 
 def nombre_archivo(reporte: ReporteResponse, extension: str) -> str:
-    return f"reporte_{reporte.seccion}_{reporte.generado_en.strftime('%Y%m%d_%H%M')}.{extension}"
+    return f"reporte_{reporte.seccion}_{a_local(reporte.generado_en).strftime('%Y%m%d_%H%M')}.{extension}"
 
 
 # --- Formateo común ---------------------------------------------------------
 
 def _a_datetime(valor: Any) -> Any:
-    if isinstance(valor, datetime) and valor.tzinfo is not None:
-        # openpyxl no admite datetimes con zona horaria.
-        return valor.replace(tzinfo=None)
+    if isinstance(valor, datetime):
+        # Hora de Guatemala; openpyxl no admite datetimes con zona horaria.
+        return a_local(valor).replace(tzinfo=None)
     return valor
 
 
@@ -56,10 +57,12 @@ def _texto(valor: Any, tipo: str) -> str:
     """Representación legible de un valor para CSV/etiquetas."""
     if valor is None or valor == "":
         return ""
-    if tipo == "fecha" and isinstance(valor, (datetime, date)):
+    if tipo == "fecha" and isinstance(valor, datetime):
+        return a_local(valor).strftime("%d/%m/%Y")
+    if tipo == "fecha" and isinstance(valor, date):
         return valor.strftime("%d/%m/%Y")
     if tipo == "fechahora" and isinstance(valor, datetime):
-        return valor.strftime("%d/%m/%Y %H:%M")
+        return a_local(valor).strftime("%d/%m/%Y %H:%M")
     if tipo == "moneda":
         return f"Q{Decimal(str(valor)):,.2f}"
     if tipo == "decimal":
@@ -239,7 +242,7 @@ def _hoja_tabla(hoja, reporte: ReporteResponse, tabla: ReporteTabla) -> None:
     hoja["A1"] = tabla.titulo
     hoja["A1"].font = Font(bold=True, size=14, color=_COLOR_ACENTO)
     hoja["A2"] = (
-        f"{reporte.titulo} · Generado el {reporte.generado_en.strftime('%d/%m/%Y %H:%M')} "
+        f"{reporte.titulo} · Generado el {a_local(reporte.generado_en).strftime('%d/%m/%Y %H:%M')} "
         f"por {reporte.generado_por}"
     )
     hoja["A2"].font = Font(color=_COLOR_TENUE, size=9)

@@ -1,9 +1,10 @@
 """Servicios de gestión de préstamos."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import List, Optional
 
 from core.messages import PrestamoMessages
 from core.roles import puede_operar_por_terceros
+from core.zona_horaria import ahora_utc
 from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
@@ -32,7 +33,7 @@ class PrestamoService(BaseService[Prestamo]):
         if (
             prestamo.estado == "ACTIVO"
             and prestamo.fecha_devolucion_esperada
-            and prestamo.fecha_devolucion_esperada < datetime.now()
+            and prestamo.fecha_devolucion_esperada < ahora_utc()
         ):
             return "VENCIDO"
         return prestamo.estado
@@ -98,7 +99,7 @@ class PrestamoService(BaseService[Prestamo]):
         prestamo = Prestamo(
             id_libro=id_libro,
             id_usuario=id_usuario,
-            fecha_devolucion_esperada=datetime.now() + timedelta(days=dias),
+            fecha_devolucion_esperada=ahora_utc() + timedelta(days=dias),
         )
         self.repository.add(prestamo, actor=requesting_user.email)
 
@@ -126,7 +127,7 @@ class PrestamoService(BaseService[Prestamo]):
             raise ValidationError(PrestamoMessages.YA_DEVUELTO)
 
         prestamo.estado = "DEVUELTO"
-        prestamo.fecha_devolucion_real = datetime.now()
+        prestamo.fecha_devolucion_real = ahora_utc()
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
 

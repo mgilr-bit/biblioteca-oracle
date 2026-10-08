@@ -9,10 +9,11 @@ idempotente (no duplica recordatorios/avisos). Genera:
 * Avisos de vencimiento (préstamos ACTIVO ya vencidos).
 * Expiración de reservas CUMPLIDA cuya ventana venció.
 """
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import List
 
 from core.messages import NotificacionMessages
+from core.zona_horaria import ahora_utc
 from models.notificacion import Notificacion
 from repositories.notificacion_repository import NotificacionRepository
 from repositories.prestamo_repository import PrestamoRepository
@@ -68,7 +69,7 @@ class NotificacionService(BaseService[Notificacion]):
 
     def ejecutar_mantenimiento(self, actor: str = "cron") -> dict:
         generadas = 0
-        ahora = datetime.now()
+        ahora = ahora_utc()
 
         # 1) Recordatorios de devolución (3 días y mismo día).
         for id_prestamo, id_usuario, esperada in self.prestamo_repo.get_activos_por_vencer_raw(

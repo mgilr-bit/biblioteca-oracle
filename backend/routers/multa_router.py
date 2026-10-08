@@ -1,7 +1,7 @@
 """Router de multas por devolución tardía.
 
 Lectura: BIBLIOTECARIO ve todas; LECTOR/PROFESOR solo las propias
-(owner_only según la política Casbin). Gestión (pagar/condonar) solo
+(owner_only según la política Casbin). Gestión (cobrar) solo
 BIBLIOTECARIO/ADMIN. La multa se genera automáticamente en
 PrestamoService.devolver, aquí no hay creación manual.
 """
@@ -59,12 +59,3 @@ def pagar_multa(
     user=Depends(require_permission("Multa", "gestionar")),
 ):
     return MultaService(session).pagar(id_multa, actor=user.email)
-
-
-@router.put("/{id_multa}/condonar", response_model=MessageResponse)
-def condonar_multa(
-    id_multa: int,
-    session: Session = Depends(get_db_session),
-    user=Depends(require_permission("Multa", "gestionar")),
-):
-    return MultaService(session).condonar(id_multa, actor=user.email)

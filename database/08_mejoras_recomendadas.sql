@@ -85,7 +85,7 @@ CREATE TABLE reservas (
     id_libro NUMBER NOT NULL,
     id_usuario NUMBER NOT NULL,
     fecha_reserva DATE DEFAULT SYSDATE,
-    fecha_expiracion DATE NOT NULL,
+    fecha_expiracion DATE,
     estado VARCHAR2(20) DEFAULT 'ACTIVA' CHECK (estado IN ('ACTIVA', 'CUMPLIDA', 'CANCELADA', 'EXPIRADA')),
     CONSTRAINT fk_reserva_libro FOREIGN KEY (id_libro) REFERENCES libros(id_libro) ON DELETE CASCADE,
     CONSTRAINT fk_reserva_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE

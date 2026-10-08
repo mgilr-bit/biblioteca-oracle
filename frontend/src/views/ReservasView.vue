@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { subject } from '@casl/ability'
 import { reservasAPI, librosAPI, usuariosAPI } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
@@ -87,9 +88,14 @@ async function saveReserva() {
     toast.error('Seleccione el libro')
     return
   }
+  // BIBLIOTECARIO/ADMIN reservan a nombre de otro: el backend exige el usuario.
+  if (esBibliotecario.value && !form.value.id_usuario) {
+    toast.error('Seleccione el usuario')
+    return
+  }
   const payload = {
     id_libro: parseInt(form.value.id_libro),
-    id_usuario: esBibliotecario.value ? (form.value.id_usuario ? parseInt(form.value.id_usuario) : null) : null
+    id_usuario: esBibliotecario.value ? parseInt(form.value.id_usuario) : null
   }
 
   saving.value = true
@@ -117,7 +123,9 @@ async function cancelarReserva(reserva) {
   }
 }
 
-const puedeCancelar = (reserva) => can('cancel', 'Reserva', { id_usuario: reserva.ID_USUARIO })
+// El 3er parámetro de `can` es un *campo* (string): las condiciones por
+// dueño se evalúan envolviendo el registro con `subject()`.
+const puedeCancelar = (reserva) => can('cancel', subject('Reserva', { id_usuario: reserva.ID_USUARIO }))
 
 onMounted(() => {
   loadLibros()
@@ -208,10 +216,10 @@ onMounted(() => {
             <tr><th>Posición</th><th>Usuario</th><th>Solicitado</th></tr>
           </thead>
           <tbody>
-            <tr v-for="(item, idx) in cola" :key="item.ID_RESERVA">
+            <tr v-for="(item, idx) in cola" :key="item.id_reserva">
               <td class="cell-mono">#{{ idx + 1 }}</td>
-              <td>{{ item.ID_USUARIO }}</td>
-              <td>{{ new Date(item.FECHA_RESERVA).toLocaleString() }}</td>
+              <td>{{ item.id_usuario }}</td>
+              <td>{{ new Date(item.fecha_reserva).toLocaleString() }}</td>
             </tr>
           </tbody>
         </table>
@@ -231,9 +239,9 @@ onMounted(() => {
           </select>
         </div>
         <div class="field" v-if="esBibliotecario">
-          <label for="usuarioRes">Usuario</label>
+          <label for="usuarioRes">Usuario *</label>
           <select id="usuarioRes" v-model="form.id_usuario" class="select">
-            <option value="">(Elegir luego)</option>
+            <option value="">Seleccione un usuario…</option>
             <option v-for="u in usuarios" :key="u.ID_USUARIO" :value="u.ID_USUARIO">{{ u.NOMBRE }}</option>
           </select>
         </div>
