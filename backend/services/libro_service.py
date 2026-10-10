@@ -6,11 +6,12 @@ respuesta lo hace el router vía `response_model`.
 import logging
 from typing import List
 
-from core.messages import LibroMessages
+from core.messages import EditorialMessages, LibroMessages
 from models.libro import Libro
+from repositories.editorial_repository import EditorialRepository
 from repositories.libro_repository import LibroRepository
 from services.base import BaseService
-from services.exceptions import BusinessRuleError, ValidationError
+from services.exceptions import BusinessRuleError, NotFoundError, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,12 @@ class LibroService(BaseService[Libro]):
 
     def __init__(self, session):
         super().__init__(LibroRepository(session))
+        self.editorial_repo = EditorialRepository(session)
+
+    def _validar_editorial(self, id_editorial) -> None:
+        """La editorial debe existir en el catálogo (y no estar borrada)."""
+        if id_editorial is not None and not self.editorial_repo.get_by_id(id_editorial):
+            raise NotFoundError(EditorialMessages.NOT_FOUND)
 
     def get_all(self, page, per_page, limit) -> dict:
         page = max(page or 1, 1)
@@ -61,6 +68,7 @@ class LibroService(BaseService[Libro]):
         if not titulo or not autor:
             raise ValidationError(LibroMessages.CAMPOS_REQUERIDOS)
 
+        self._validar_editorial(data.get("id_editorial"))
         numero_copias = int(data.get("numero_copias", 1) or 1)
         libro = Libro(
             titulo=titulo,
@@ -71,7 +79,6 @@ class LibroService(BaseService[Libro]):
             numero_copias=numero_copias,
             copias_disponibles=numero_copias,
             id_editorial=data.get("id_editorial"),
-            editorial=data.get("editorial"),
         )
         self.repository.add(libro, actor=actor)
 
@@ -85,6 +92,7 @@ class LibroService(BaseService[Libro]):
         if not titulo or not autor:
             raise ValidationError(LibroMessages.CAMPOS_REQUERIDOS)
 
+        self._validar_editorial(data.get("id_editorial"))
         nuevas_copias = int(data.get("numero_copias", libro.numero_copias) or libro.numero_copias)
         diferencia = nuevas_copias - libro.numero_copias
         nuevas_disponibles = libro.copias_disponibles + diferencia
@@ -103,7 +111,6 @@ class LibroService(BaseService[Libro]):
         libro.numero_copias = nuevas_copias
         libro.copias_disponibles = nuevas_disponibles
         libro.id_editorial = data.get("id_editorial")
-        libro.editorial = data.get("editorial")
         self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()
 

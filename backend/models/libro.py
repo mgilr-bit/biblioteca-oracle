@@ -3,9 +3,10 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Column, Identity, Integer, text
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from models.base import AuditMixin
+from models.editorial import Editorial
 
 
 class Libro(AuditMixin, table=True):
@@ -26,4 +27,14 @@ class Libro(AuditMixin, table=True):
         default=None, sa_column_kwargs={"server_default": text("SYSDATE")}
     )
     id_editorial: Optional[int] = Field(default=None, foreign_key="editoriales.id_editorial", index=True)
-    editorial: Optional[str] = Field(default=None, max_length=100)
+
+    editorial_rel: Optional[Editorial] = Relationship()
+
+    @property
+    def editorial(self) -> Optional[str]:
+        """Nombre de la editorial del catálogo (contrato de la API: EDITORIAL).
+
+        Ya no es una columna: la fuente de verdad es `id_editorial`; el
+        nombre se deriva de la relación (migración 0012 eliminó el texto).
+        """
+        return self.editorial_rel.nombre if self.editorial_rel else None
