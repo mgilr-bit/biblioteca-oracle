@@ -8,6 +8,7 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from config.database import SessionLocal
+from models.editorial import Editorial
 from models.libro import Libro
 
 logging.basicConfig(level=logging.INFO)
@@ -101,14 +102,27 @@ def generar_autor():
 
     return f"{nombre} {apellido1}"
 
-def crear_libro():
+def asegurar_editoriales(session):
+    """Crea las editoriales que falten en el catálogo y devuelve {nombre: id_editorial}."""
+    existentes = {e.nombre: e.id_editorial for e in session.exec(select(Editorial)).all()}
+    for nombre in EDITORIALES:
+        if nombre not in existentes:
+            editorial = Editorial(nombre=nombre, created_by="populate_books")
+            session.add(editorial)
+            session.flush()
+            existentes[nombre] = editorial.id_editorial
+    session.commit()
+    return {nombre: existentes[nombre] for nombre in EDITORIALES}
+
+
+def crear_libro(editoriales_ids):
     """Crear un libro con datos aleatorios pero realistas"""
     titulo = generar_titulo()
     autor = generar_autor()
     isbn = generar_isbn()
     anio_publicacion = random.randint(1950, 2024)
     genero = random.choice(GENEROS)
-    editorial = random.choice(EDITORIALES)
+    id_editorial = random.choice(list(editoriales_ids.values()))
     numero_copias = random.randint(1, 15)
     copias_disponibles = random.randint(0, numero_copias)  # Algunas pueden estar prestadas
 
@@ -118,7 +132,7 @@ def crear_libro():
         'isbn': isbn,
         'anio_publicacion': anio_publicacion,
         'genero': genero,
-        'editorial': editorial,
+        'id_editorial': id_editorial,
         'numero_copias': numero_copias,
         'copias_disponibles': copias_disponibles
     }
@@ -132,9 +146,10 @@ def poblar_libros(cantidad=500):
     errores = 0
 
     try:
+        editoriales_ids = asegurar_editoriales(session)
         for i in range(cantidad):
             try:
-                session.add(Libro(**crear_libro()))
+                session.add(Libro(**crear_libro(editoriales_ids)))
 
                 # Commit en lotes de 50
                 if (i + 1) % 50 == 0:

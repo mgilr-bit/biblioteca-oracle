@@ -36,8 +36,7 @@ class LibroCreate(BaseModel):
     anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
     genero: Optional[str] = Field(default=None, max_length=50)
     numero_copias: int = Field(default=1, ge=0, le=10_000)
-    id_editorial: Optional[int] = Field(default=None)
-    editorial: Optional[str] = Field(default=None, max_length=100)
+    id_editorial: Optional[int] = Field(default=None, ge=1)
 
 
 class LibroUpdate(BaseModel):
@@ -47,8 +46,7 @@ class LibroUpdate(BaseModel):
     anio_publicacion: Optional[int] = Field(default=None, ge=1900, le=2030)
     genero: Optional[str] = Field(default=None, max_length=50)
     numero_copias: Optional[int] = Field(default=None, ge=0, le=10_000)
-    id_editorial: Optional[int] = Field(default=None)
-    editorial: Optional[str] = Field(default=None, max_length=100)
+    id_editorial: Optional[int] = Field(default=None, ge=1)
 
 
 class LibroCopiasUpdate(BaseModel):

@@ -89,7 +89,7 @@ const editingId = ref(null)
 const form = ref(emptyForm())
 
 function emptyForm() {
-  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', editorial: '', copias: 1 }
+  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', id_editorial: '', copias: 1 }
 }
 
 function openCreate() {
@@ -106,7 +106,7 @@ function openEdit(libro) {
     isbn: libro.ISBN || '',
     anio: libro.ANIO_PUBLICACION || '',
     genero: libro.GENERO || '',
-    editorial: libro.EDITORIAL || '',
+    id_editorial: libro.ID_EDITORIAL || '',
     copias: libro.NUMERO_COPIAS
   }
   showModal.value = true
@@ -122,7 +122,7 @@ async function saveLibro() {
     isbn: emptyToNull(form.value.isbn),
     anio_publicacion: form.value.anio ? parseInt(form.value.anio) : null,
     genero: emptyToNull(form.value.genero),
-    editorial: emptyToNull(form.value.editorial),
+    id_editorial: form.value.id_editorial ? parseInt(form.value.id_editorial) : null,
     numero_copias: form.value.copias ? parseInt(form.value.copias) : 1
   }
 
@@ -270,10 +270,12 @@ onMounted(() => {
         </div>
         <div class="field">
           <label for="editorial">Editorial</label>
-          <input id="editorial" v-model="form.editorial" class="input" list="editoriales-list" />
-          <datalist id="editoriales-list">
-            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.NOMBRE" />
-          </datalist>
+          <select id="editorial" v-model="form.id_editorial" class="select">
+            <option value="">Sin editorial</option>
+            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.ID_EDITORIAL">
+              {{ e.NOMBRE }}
+            </option>
+          </select>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="copias">Número de copias</label>
