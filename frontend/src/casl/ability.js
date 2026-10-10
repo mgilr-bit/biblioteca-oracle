@@ -16,6 +16,7 @@ export function buildAbilityFor(user) {
     can('manage', 'all')
   } else {
     can('read', 'Libro')
+    can('read', 'Editorial')
     can(['create', 'read'], 'Prestamo', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
   }

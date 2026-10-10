@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
-import { librosAPI } from '../api'
+import { librosAPI, editorialesAPI } from '../api'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import AppModal from '../components/AppModal.vue'
@@ -13,6 +13,7 @@ const { ask } = useConfirm()
 
 const allLibros = ref([])
 const generos = ref([])
+const editoriales = ref([])
 const currentPage = ref(1)
 const perPage = 50
 const loading = ref(true)
@@ -30,6 +31,14 @@ async function loadGeneros() {
     generos.value = await librosAPI.getGeneros()
   } catch (error) {
     console.error('Error cargando géneros:', error)
+  }
+}
+
+async function loadEditoriales() {
+  try {
+    editoriales.value = await editorialesAPI.getAll()
+  } catch (error) {
+    console.error('Error cargando editoriales:', error)
   }
 }
 
@@ -74,7 +83,7 @@ const editingId = ref(null)
 const form = ref(emptyForm())
 
 function emptyForm() {
-  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', editorial: '', copias: 1 }
+  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', id_editorial: '', copias: 1 }
 }
 
 function openCreate() {
@@ -91,7 +100,7 @@ function openEdit(libro) {
     isbn: libro.ISBN || '',
     anio: libro.ANIO_PUBLICACION || '',
     genero: libro.GENERO || '',
-    editorial: libro.EDITORIAL || '',
+    id_editorial: libro.ID_EDITORIAL || '',
     copias: libro.NUMERO_COPIAS
   }
   showModal.value = true
@@ -107,7 +116,7 @@ async function saveLibro() {
     isbn: emptyToNull(form.value.isbn),
     anio_publicacion: form.value.anio ? parseInt(form.value.anio) : null,
     genero: emptyToNull(form.value.genero),
-    editorial: emptyToNull(form.value.editorial),
+    id_editorial: form.value.id_editorial ? parseInt(form.value.id_editorial) : null,
     numero_copias: form.value.copias ? parseInt(form.value.copias) : 1
   }
 
@@ -161,6 +170,7 @@ async function exportarCSV() {
 
 onMounted(() => {
   loadGeneros()
+  loadEditoriales()
   loadLibros()
 })
 </script>
@@ -204,7 +214,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>ID</th><th>Título</th><th>Autor</th><th>ISBN</th><th>Año</th>
-              <th>Género</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
+              <th>Género</th><th>Editorial</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -215,6 +225,7 @@ onMounted(() => {
               <td class="cell-mono">{{ libro.ISBN || '-' }}</td>
               <td>{{ libro.ANIO_PUBLICACION || '-' }}</td>
               <td>{{ libro.GENERO || '-' }}</td>
+              <td>{{ libro.EDITORIAL || '-' }}</td>
               <td>{{ libro.NUMERO_COPIAS }}</td>
               <td>
                 <span class="stamp" :class="libro.COPIAS_DISPONIBLES > 0 ? 'stamp-success' : 'stamp-danger'">
@@ -230,7 +241,7 @@ onMounted(() => {
               </td>
             </tr>
             <tr v-if="!loading && !paginatedLibros.length">
-              <td colspan="9" class="cell-empty">{{ emptyMessage }}</td>
+              <td colspan="10" class="cell-empty">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>
@@ -271,7 +282,12 @@ onMounted(() => {
         </div>
         <div class="field">
           <label for="editorial">Editorial</label>
-          <input id="editorial" v-model="form.editorial" class="input" />
+          <select id="editorial" v-model="form.id_editorial" class="select">
+            <option value="">Sin editorial</option>
+            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.ID_EDITORIAL">
+              {{ e.NOMBRE }}
+            </option>
+          </select>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="copias">Número de copias</label>

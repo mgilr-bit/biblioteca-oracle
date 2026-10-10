@@ -46,6 +46,12 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Libro", "update", "false"),
     ("BIBLIOTECARIO", "Libro", "delete", "false"),
     ("LECTOR", "Libro", "read", "false"),
+    # Editoriales: lectura abierta a cualquier rol autenticado, escritura solo BIBLIOTECARIO.
+    ("BIBLIOTECARIO", "Editorial", "read", "false"),
+    ("BIBLIOTECARIO", "Editorial", "create", "false"),
+    ("BIBLIOTECARIO", "Editorial", "update", "false"),
+    ("BIBLIOTECARIO", "Editorial", "delete", "false"),
+    ("LECTOR", "Editorial", "read", "false"),
     # Usuarios: BIBLIOTECARIO administra a cualquiera; LECTOR solo lee/edita su propio perfil
     # (el servicio impide además que un LECTOR se cambie el rol a sí mismo).
     ("BIBLIOTECARIO", "Usuario", "read", "false"),
@@ -68,10 +74,12 @@ enforcer = casbin.Enforcer(_MODEL_PATH, _adapter)
 
 
 def ensure_default_policies() -> None:
-    """Siembra las políticas por defecto en `casbin_rule` (Oracle) si la tabla está vacía."""
+    """Siembra en `casbin_rule` (Oracle) las políticas por defecto que falten.
+
+    Es aditivo e idempotente (add_policy no duplica y persiste vía el
+    adapter): así una BD que ya tenía políticas recibe las de recursos
+    nuevos (ej. Editorial) sin tocar las existentes.
+    """
     enforcer.load_policy()
-    if enforcer.get_policy():
-        return
     for rol, subject, act, owner_only in DEFAULT_POLICIES:
         enforcer.add_policy(rol, subject, act, owner_only)
-    enforcer.save_policy()

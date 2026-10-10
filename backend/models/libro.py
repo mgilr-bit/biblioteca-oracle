@@ -3,9 +3,10 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Column, Identity, Integer, text
-from sqlmodel import Field
+from sqlmodel import Field, Relationship
 
 from models.base import AuditMixin
+from models.editorial import Editorial
 
 
 class Libro(AuditMixin, table=True):
@@ -25,4 +26,13 @@ class Libro(AuditMixin, table=True):
     fecha_registro: Optional[datetime] = Field(
         default=None, sa_column_kwargs={"server_default": text("SYSDATE")}
     )
-    editorial: Optional[str] = Field(default=None, max_length=100)
+    id_editorial: Optional[int] = Field(
+        default=None, foreign_key="editoriales.id_editorial", index=True
+    )
+
+    editorial_rel: Optional[Editorial] = Relationship()
+
+    @property
+    def editorial(self) -> Optional[str]:
+        """Nombre de la editorial (contrato de la API: campo EDITORIAL)."""
+        return self.editorial_rel.nombre if self.editorial_rel else None

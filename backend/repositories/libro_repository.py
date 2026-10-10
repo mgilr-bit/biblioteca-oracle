@@ -2,10 +2,15 @@
 from typing import Dict, List
 
 from sqlalchemy import and_, case, func
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from models.libro import Libro
 from repositories.base import BaseRepository
+
+# Las listas serializan EDITORIAL (nombre); se carga en un solo query extra
+# en vez de un SELECT por libro (N+1).
+_WITH_EDITORIAL = selectinload(Libro.editorial_rel)
 
 
 class LibroRepository(BaseRepository[Libro]):
@@ -17,12 +22,18 @@ class LibroRepository(BaseRepository[Libro]):
         return self.session.execute(stmt).scalar_one()
 
     def get_ordered_by_titulo(self) -> List[Libro]:
-        stmt = select(Libro).where(Libro.is_deleted == False).order_by(Libro.titulo)  # noqa: E712
+        stmt = (
+            select(Libro)
+            .options(_WITH_EDITORIAL)
+            .where(Libro.is_deleted == False)  # noqa: E712
+            .order_by(Libro.titulo)
+        )
         return list(self.session.exec(stmt))
 
     def get_paginated(self, offset: int, per_page: int) -> List[Libro]:
         stmt = (
             select(Libro)
+            .options(_WITH_EDITORIAL)
             .where(Libro.is_deleted == False)  # noqa: E712
             .order_by(Libro.titulo)
             .offset(offset)
@@ -31,7 +42,13 @@ class LibroRepository(BaseRepository[Libro]):
         return list(self.session.exec(stmt))
 
     def get_first_n(self, limit: int) -> List[Libro]:
-        stmt = select(Libro).where(Libro.is_deleted == False).order_by(Libro.titulo).limit(limit)  # noqa: E712
+        stmt = (
+            select(Libro)
+            .options(_WITH_EDITORIAL)
+            .where(Libro.is_deleted == False)  # noqa: E712
+            .order_by(Libro.titulo)
+            .limit(limit)
+        )
         return list(self.session.exec(stmt))
 
     def search(
@@ -53,7 +70,13 @@ class LibroRepository(BaseRepository[Libro]):
         if genero:
             conditions.append(func.upper(Libro.genero).like(f"%{genero.upper()}%"))
 
-        stmt = select(Libro).where(*conditions).order_by(Libro.titulo).limit(limit)
+        stmt = (
+            select(Libro)
+            .options(_WITH_EDITORIAL)
+            .where(*conditions)
+            .order_by(Libro.titulo)
+            .limit(limit)
+        )
         return list(self.session.exec(stmt))
 
     def get_generos(self) -> List[str]:
@@ -68,6 +91,7 @@ class LibroRepository(BaseRepository[Libro]):
     def get_bajo_stock(self) -> List[Libro]:
         stmt = (
             select(Libro)
+            .options(_WITH_EDITORIAL)
             .where(Libro.is_deleted == False, Libro.copias_disponibles < 2)  # noqa: E712
             .order_by(Libro.copias_disponibles)
         )

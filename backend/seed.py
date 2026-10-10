@@ -12,6 +12,7 @@ from sqlalchemy import delete, text
 
 from config.database import SessionLocal
 from core.config import settings
+from models.editorial import Editorial
 from models.libro import Libro
 from models.prestamo import Prestamo
 from models.usuario import Usuario
@@ -52,7 +53,19 @@ def seed_usuarios(session):
     print(f"Total: {len(USUARIOS)} usuarios insertados")
 
 
-def seed_libros(session):
+def seed_editoriales(session):
+    """Una fila por editorial distinta de LIBROS; devuelve {nombre: id_editorial}."""
+    ids = {}
+    for nombre in sorted({libro[6] for libro in LIBROS}):
+        editorial = Editorial(nombre=nombre, created_by="system")
+        session.add(editorial)
+        session.flush()
+        ids[nombre] = editorial.id_editorial
+    print(f"{len(ids)} editoriales insertadas")
+    return ids
+
+
+def seed_libros(session, editoriales_ids):
     for titulo, autor, isbn, anio, genero, copias, editorial in LIBROS:
         session.add(
             Libro(
@@ -63,7 +76,7 @@ def seed_libros(session):
                 genero=genero,
                 numero_copias=copias,
                 copias_disponibles=copias,
-                editorial=editorial,
+                id_editorial=editoriales_ids[editorial],
                 created_by="system",
             )
         )
@@ -83,10 +96,11 @@ def main():
 
         session.execute(delete(Prestamo))
         session.execute(delete(Libro))
+        session.execute(delete(Editorial))
         session.execute(delete(Usuario))
 
         seed_usuarios(session)
-        seed_libros(session)
+        seed_libros(session, seed_editoriales(session))
         session.commit()
         print("=== Datos sembrados correctamente ===")
     except Exception as error:

@@ -34,11 +34,13 @@ def export_libros_to_excel():
                 isbn AS "ISBN",
                 anio_publicacion AS "Año Publicación",
                 genero AS "Género",
-                editorial AS "Editorial",
+                e.nombre AS "Editorial",
                 numero_copias AS "Total Copias",
                 copias_disponibles AS "Copias Disponibles",
                 fecha_registro AS "Fecha Registro"
-            FROM libros
+            FROM libros l
+            LEFT JOIN editoriales e ON e.id_editorial = l.id_editorial
+            WHERE l.is_deleted = 0
             ORDER BY titulo
         """
 
@@ -100,12 +102,14 @@ def export_libros_with_stats():
                 isbn AS "ISBN",
                 anio_publicacion AS "Año",
                 genero AS "Género",
-                editorial AS "Editorial",
+                e.nombre AS "Editorial",
                 numero_copias AS "Total",
                 copias_disponibles AS "Disponibles",
                 (numero_copias - copias_disponibles) AS "Prestados",
                 fecha_registro AS "Fecha Registro"
-            FROM libros
+            FROM libros l
+            LEFT JOIN editoriales e ON e.id_editorial = l.id_editorial
+            WHERE l.is_deleted = 0
             ORDER BY titulo
         """
 

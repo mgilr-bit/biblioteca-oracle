@@ -24,6 +24,13 @@ export const librosAPI = {
   exportCSV: () => http.getBlob('/libros/export/csv')
 }
 
+export const editorialesAPI = {
+  getAll: () => http.get('/editoriales/'),
+  create: (editorial) => http.post('/editoriales/', editorial),
+  update: (id, editorial) => http.put(`/editoriales/${id}`, editorial),
+  delete: (id) => http.delete(`/editoriales/${id}`)
+}
+
 export const prestamosAPI = {
   getAll: () => http.get('/prestamos/'),
   getActivos: () => http.get('/prestamos/activos'),

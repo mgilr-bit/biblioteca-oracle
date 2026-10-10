@@ -18,7 +18,7 @@ from core.messages import GenericMessages
 from core.rate_limit import limiter
 from core.request_limits import body_size_limit_middleware
 from core.security_headers import security_headers_middleware
-from routers import auth_router, libro_router, prestamo_router, usuario_router
+from routers import auth_router, editorial_router, libro_router, prestamo_router, usuario_router
 from services.exceptions import ServiceError
 
 if not os.path.exists("logs"):
@@ -100,6 +100,7 @@ def redoc_html():
 
 app.include_router(auth_router, prefix="/api/auth")
 app.include_router(libro_router, prefix="/api/libros")
+app.include_router(editorial_router, prefix="/api/editoriales")
 app.include_router(usuario_router, prefix="/api/usuarios")
 app.include_router(prestamo_router, prefix="/api/prestamos")
 
@@ -112,6 +113,7 @@ def home():
         "endpoints": {
             "auth": "/api/auth",
             "libros": "/api/libros",
+            "editoriales": "/api/editoriales",
             "usuarios": "/api/usuarios",
             "prestamos": "/api/prestamos",
         },
