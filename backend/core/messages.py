@@ -68,6 +68,8 @@ class NotificacionMessages:
     RECORDATORIO_3D = "El préstamo #{id} vence en 3 días. Recuerde devolverlo a tiempo."
     VENCIDO = "Su préstamo #{id} lleva {dias} día(s) de retraso. Devuélvalo para evitar una multa."
     RESERVA_DISPONIBLE = "Una copia de su libro reservado está disponible. Recójala en la biblioteca ({dias} días)."
+    RESERVA_NUEVA_CON_COPIA = "Nueva reserva: {nombre} reservó \"{titulo}\". Puede recogerlo hasta el {hasta}."
+    RESERVA_NUEVA_EN_COLA = "Nueva reserva: {nombre} reservó \"{titulo}\". Quedó en cola (no hay copias libres)."
     MULTA_GENERADA = "Se generó una multa de Q{monto} por el préstamo #{id}. Regularice su estado."
 
 

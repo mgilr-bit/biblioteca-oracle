@@ -10,6 +10,7 @@ const router = useRouter()
 const noLeidas = ref(0)
 const panelOpen = ref(false)
 const notis = ref([])
+let sondeo = null
 
 async function refreshCount() {
   if (!auth.isAuthenticated) return
@@ -61,6 +62,11 @@ async function logout() {
 
 onMounted(() => {
   refreshCount()
+  // Sondeo del contador para que los avisos nuevos (p. ej. reservas que hace
+  // un usuario) aparezcan sin recargar la página.
+  sondeo = setInterval(() => {
+    if (document.visibilityState === 'visible') refreshCount()
+  }, 60000)
   document.addEventListener('click', cerrarPanel)
   // Refresca el contador al volver de background (ej. devolución de otra pestaña).
   document.addEventListener('visibilitychange', () => {
@@ -69,6 +75,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  clearInterval(sondeo)
   document.removeEventListener('click', cerrarPanel)
 })
 </script>

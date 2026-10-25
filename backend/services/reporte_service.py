@@ -49,6 +49,7 @@ TIPOS_NOTIFICACION = {
     "RECORDATORIO_3D": "Recordatorio",
     "VENCIDO": "Vencimiento",
     "RESERVA_DISPONIBLE": "Reserva disponible",
+    "RESERVA_NUEVA": "Nueva reserva",
     "MULTA": "Multa",
     "SISTEMA": "Sistema",
 }

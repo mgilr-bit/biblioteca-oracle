@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from models.prestamo import Prestamo
+from core.roles import ROLES_GESTION
 from models.usuario import Usuario
 from repositories.base import BaseRepository
 
@@ -24,6 +25,15 @@ class UsuarioRepository(BaseRepository[Usuario]):
 
     def get_all(self) -> List[Usuario]:
         stmt = select(Usuario).where(Usuario.is_deleted == False).order_by(Usuario.nombre)  # noqa: E712
+        return list(self.session.exec(stmt))
+
+    def get_personal_activo(self) -> List[Usuario]:
+        """BIBLIOTECARIO/ADMIN con la cuenta activa (destinatarios de avisos internos)."""
+        stmt = select(Usuario).where(
+            Usuario.is_deleted == False,  # noqa: E712
+            Usuario.rol.in_(ROLES_GESTION),
+            Usuario.activo == "S",
+        )
         return list(self.session.exec(stmt))
 
     def count_active_prestamos(self, id_usuario: int) -> int:

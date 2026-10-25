@@ -25,6 +25,7 @@ from models.reserva import Reserva
 from repositories.libro_repository import LibroRepository
 from repositories.notificacion_repository import NotificacionRepository
 from repositories.reserva_repository import ReservaRepository
+from repositories.usuario_repository import UsuarioRepository
 from schemas.reserva import ReservaResponse
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
@@ -127,10 +128,27 @@ class ReservaService(BaseService[Reserva]):
             detalle=f"Reserva del libro #{id_libro} para usuario #{id_usuario}",
         )
 
-        if reserva.fecha_expiracion:
-            hasta = a_local(reserva.fecha_expiracion).strftime("%d/%m/%Y %H:%M")
+        hasta = a_local(reserva.fecha_expiracion).strftime("%d/%m/%Y %H:%M") if reserva.fecha_expiracion else None
+        # La biblioteca se entera de las reservas que hacen los propios
+        # usuarios (las que registra el personal ya las conoce).
+        if not puede_operar_por_terceros(requesting_user.rol):
+            self._avisar_al_personal(requesting_user.nombre, libro.titulo, hasta)
+
+        if hasta:
             return {"success": True, "message": ReservaMessages.CREADA_CON_COPIA.format(hasta=hasta)}
         return {"success": True, "message": ReservaMessages.CREADA_EN_COLA}
+
+    def _avisar_al_personal(self, nombre: str, titulo: str, hasta: Optional[str]) -> None:
+        if hasta:
+            mensaje = NotificacionMessages.RESERVA_NUEVA_CON_COPIA.format(nombre=nombre, titulo=titulo, hasta=hasta)
+        else:
+            mensaje = NotificacionMessages.RESERVA_NUEVA_EN_COLA.format(nombre=nombre, titulo=titulo)
+        notificaciones = NotificacionRepository(self.repository.session)
+        for personal in UsuarioRepository(self.repository.session).get_personal_activo():
+            notificaciones.add(
+                Notificacion(id_usuario=personal.id_usuario, tipo="RESERVA_NUEVA", mensaje=mensaje[:500]),
+                actor="sistema",
+            )
 
     def cancelar(self, id_reserva: int, requesting_user) -> dict:
         reserva = self.get_by_id(id_reserva)
