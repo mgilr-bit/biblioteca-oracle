@@ -55,6 +55,11 @@ class ReservaMessages:
     MAX_RESERVAS = "Límite de {max} reservas simultáneas alcanzado"
     RESERVA_DUPLICADA = "Ya tiene una reserva activa para este libro"
     NO_CANCELABLE = "Solo se pueden cancelar reservas activas"
+    NO_RECOGIBLE = "Solo se pueden recoger reservas activas"
+    EN_COLA = "La reserva sigue en cola: todavía no hay una copia apartada para este usuario"
+    CREADA_CON_COPIA = "Reserva creada. Puede recogerse hasta el {hasta}"
+    CREADA_EN_COLA = "Reserva creada en cola: no hay copias libres; tendrá 3 días para recogerla cuando se libere una"
+    RECOGIDA = "Reserva recogida: se registró el préstamo"
 
 
 class NotificacionMessages:
@@ -71,6 +76,7 @@ class PrestamoMessages:
     YA_DEVUELTO = "El préstamo ya fue devuelto"
     CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
     SIN_COPIAS = "No hay copias disponibles"
+    COPIAS_APARTADAS = "Las copias disponibles están apartadas para reservas de otros usuarios"
     LIBRO_NO_DISPONIBLE = "El libro no se puede prestar porque está {estado}"
     MULTAS_PENDIENTES = "El usuario tiene multas pendientes de pago"
     DEVOLUCION_CON_MULTA = (

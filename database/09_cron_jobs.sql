@@ -1,6 +1,6 @@
 -- 09_cron_jobs.sql
 -- Job automático de mantenimiento (fase 4 del plan): recordatorios de
--- devolución, avisos de vencimiento y expiración de reservas CUMPLIDA.
+-- devolución, avisos de vencimiento y reservas sin recoger.
 --
 -- Es el respaldo en BD del mantenimiento que también expone el backend en
 -- `PUT /api/notificaciones/mantenimiento` (NotificacionService.ejecutar_mantenimiento).
@@ -57,10 +57,10 @@ BEGIN
        );
     v_avisos := v_avisos + SQL%ROWCOUNT;
 
-    -- (c) Expirar reservas CUMPLIDA cuya ventana de recogida ya venció.
+    -- (c) Reservas ACTIVA cuya ventana de recogida (3 días) ya venció.
     UPDATE reservas
-       SET estado = 'EXPIRADA', updated_by = 'cron', updated_at = SYSTIMESTAMP
-     WHERE estado = 'CUMPLIDA'
+       SET estado = 'SIN_RECOGER', updated_by = 'cron', updated_at = SYSTIMESTAMP
+     WHERE estado = 'ACTIVA'
        AND fecha_expiracion IS NOT NULL
        AND fecha_expiracion < SYSDATE;
 

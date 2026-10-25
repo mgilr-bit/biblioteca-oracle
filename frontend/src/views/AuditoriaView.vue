@@ -30,6 +30,7 @@ const ACCION_STAMP = {
   MULTA_CONDONADA: 'stamp-neutral',
   RESERVA_CREADA: 'stamp-primary',
   RESERVA_CANCELADA: 'stamp-neutral',
+  RESERVA_RECOGIDA: 'stamp-success',
   USUARIO_CREADO: 'stamp-primary',
   USUARIO_ACTUALIZADO: 'stamp-neutral',
   USUARIO_ELIMINADO: 'stamp-danger',

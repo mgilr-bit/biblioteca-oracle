@@ -7,7 +7,8 @@ idempotente (no duplica recordatorios/avisos). Genera:
 
 * Recordatorios de devolución (3 días antes y el mismo día).
 * Avisos de vencimiento (préstamos ACTIVO ya vencidos).
-* Expiración de reservas CUMPLIDA cuya ventana venció.
+* Reservas sin recoger: las ACTIVA cuya ventana de 3 días venció pasan a
+  SIN_RECOGER (ver ReservaService.actualizar_estados).
 """
 from datetime import timedelta
 from typing import List
@@ -17,9 +18,9 @@ from core.zona_horaria import ahora_utc
 from models.notificacion import Notificacion
 from repositories.notificacion_repository import NotificacionRepository
 from repositories.prestamo_repository import PrestamoRepository
-from repositories.reserva_repository import ReservaRepository
 from schemas.notificacion import NotificacionResponse
 from services.base import BaseService
+from services.reserva_service import ReservaService
 
 RECORDATORIO_DIAS = 3
 
@@ -30,7 +31,6 @@ class NotificacionService(BaseService[Notificacion]):
     def __init__(self, session):
         super().__init__(NotificacionRepository(session))
         self.prestamo_repo = PrestamoRepository(session)
-        self.reserva_repo = ReservaRepository(session)
 
     def get_mis_notificaciones(self, id_usuario: int, limit: int = 200) -> List[NotificacionResponse]:
         return [
@@ -94,14 +94,8 @@ class NotificacionService(BaseService[Notificacion]):
             ):
                 generadas += 1
 
-        # 3) Expiración de reservas CUMPLIDA cuya ventana ya venció.
-        expiradas = 0
-        for reserva in self.reserva_repo.get_cumplidas_expiradas():
-            reserva.estado = "EXPIRADA"
-            self.reserva_repo.mark_updated(reserva, actor=actor)
-            expiradas += 1
-        if expiradas:
-            self.reserva_repo.flush()
+        # 3) Reservas cuya ventana de recogida venció -> SIN_RECOGER.
+        expiradas = ReservaService(self.repository.session).actualizar_estados(actor=actor)
 
         return {
             "success": True,

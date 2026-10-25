@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { subject } from '@casl/ability'
 import { reservasAPI, librosAPI, usuariosAPI } from '../api'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../composables/useToast'
+import { useConfirm } from '../composables/useConfirm'
 import { useCan } from '../composables/useCan'
 import AppModal from '../components/AppModal.vue'
 import ReportButton from '../components/ReportButton.vue'
@@ -11,6 +11,7 @@ import ReportButton from '../components/ReportButton.vue'
 const auth = useAuthStore()
 const can = useCan()
 const toast = useToast()
+const { ask } = useConfirm()
 
 const esBibliotecario = computed(() => auth.user?.rol === 'BIBLIOTECARIO' || auth.user?.rol === 'ADMIN')
 
@@ -27,11 +28,13 @@ const form = ref({ id_libro: '', id_usuario: '', librosLimitados: false })
 const colaLibro = ref('')
 const cola = ref([])
 
-const ESTADO_CLASS = {
-  ACTIVA: 'stamp-info',
-  CUMPLIDA: 'stamp-success',
-  CANCELADA: 'stamp-neutral',
-  EXPIRADA: 'stamp-danger'
+// ACTIVA: pendiente de recoger (con fecha = copia apartada por 3 días; sin
+// fecha = en cola esperando copia). SIN_RECOGER la marca el sistema al vencer.
+const ESTADOS = {
+  ACTIVA: { label: 'Activa', stamp: 'stamp-info' },
+  RECOGIDA: { label: 'Recogida', stamp: 'stamp-success' },
+  SIN_RECOGER: { label: 'Sin recoger', stamp: 'stamp-danger' },
+  CANCELADA: { label: 'Cancelada', stamp: 'stamp-neutral' }
 }
 
 const filtro = computed(() =>
@@ -115,6 +118,11 @@ async function saveReserva() {
 }
 
 async function cancelarReserva(reserva) {
+  const ok = await ask(`¿Cancelar la reserva de "${reserva.TITULO}" de ${reserva.NOMBRE_USUARIO}?`, {
+    title: 'Cancelar reserva',
+    danger: true
+  })
+  if (!ok) return
   try {
     const response = await reservasAPI.cancelar(reserva.ID_RESERVA)
     toast.success(response.message || 'Reserva cancelada')
@@ -125,9 +133,25 @@ async function cancelarReserva(reserva) {
   }
 }
 
-// El 3er parámetro de `can` es un *campo* (string): las condiciones por
-// dueño se evalúan envolviendo el registro con `subject()`.
-const puedeCancelar = (reserva) => can('cancel', subject('Reserva', { id_usuario: reserva.ID_USUARIO }))
+async function recogerReserva(reserva) {
+  const ok = await ask(
+    `¿${reserva.NOMBRE_USUARIO} recogió "${reserva.TITULO}"? Se registrará el préstamo a su nombre.`,
+    { title: 'Marcar como recogida' }
+  )
+  if (!ok) return
+  try {
+    const response = await reservasAPI.recoger(reserva.ID_RESERVA)
+    toast.success(response.message || 'Reserva recogida')
+    loadReservas()
+    loadCola()
+  } catch (error) {
+    toast.error('Error: ' + error.message)
+  }
+}
+
+// Las acciones (recoger/cancelar) son solo de BIBLIOTECARIO/ADMIN.
+const verAcciones = computed(() => can('cancel', 'Reserva'))
+const columnas = computed(() => 5 + (esBibliotecario.value ? 1 : 0) + (verAcciones.value ? 1 : 0))
 
 onMounted(() => {
   loadLibros()
@@ -141,7 +165,7 @@ onMounted(() => {
     <div class="page-header">
       <div>
         <h2>Gestión de reservas</h2>
-        <p class="text-muted" style="margin:0">Cola FIFO: la reserva más antigua se atiende primero cuando vuelve una copia.</p>
+        <p class="text-muted" style="margin:0">Cada reserva aparta una copia por 3 días; si no hay copias libres espera en cola (FIFO).</p>
       </div>
       <div class="cluster">
         <ReportButton seccion="reservas" :filtros="{ estado: filtroEstado }" />
@@ -161,10 +185,7 @@ onMounted(() => {
       <div class="card__body search-bar" style="border:none; padding:var(--space-3)">
         <select v-model="filtroEstado" class="select">
           <option value="">Todos los estados</option>
-          <option value="ACTIVA">ACTIVA</option>
-          <option value="CUMPLIDA">CUMPLIDA</option>
-          <option value="CANCELADA">CANCELADA</option>
-          <option value="EXPIRADA">EXPIRADA</option>
+          <option v-for="(info, valor) in ESTADOS" :key="valor" :value="valor">{{ info.label }}</option>
         </select>
       </div>
       <div class="card__body table-wrap" style="padding-top:0">
@@ -172,7 +193,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>ID</th><th>Libro</th><th v-if="esBibliotecario">Usuario</th>
-              <th>Fecha</th><th>Expira</th><th>Estado</th><th>Acciones</th>
+              <th>Fecha</th><th>Expira</th><th>Estado</th><th v-if="verAcciones">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -181,23 +202,32 @@ onMounted(() => {
               <td>{{ r.TITULO }}</td>
               <td v-if="esBibliotecario">{{ r.NOMBRE_USUARIO }}</td>
               <td>{{ new Date(r.FECHA_RESERVA).toLocaleString() }}</td>
-              <td>{{ r.FECHA_EXPIRACION ? new Date(r.FECHA_EXPIRACION).toLocaleDateString() : '-' }}</td>
               <td>
-                <span class="stamp" :class="ESTADO_CLASS[r.ESTADO] || 'stamp-neutral'">{{ r.ESTADO }}</span>
+                <template v-if="r.FECHA_EXPIRACION">{{ new Date(r.FECHA_EXPIRACION).toLocaleString() }}</template>
+                <span v-else-if="r.ESTADO === 'ACTIVA'" class="text-muted">En cola (sin copia libre)</span>
+                <template v-else>-</template>
               </td>
               <td>
-                <button
-                  v-if="r.ESTADO === 'ACTIVA' && puedeCancelar(r)"
-                  class="btn btn-outline btn-sm"
-                  @click="cancelarReserva(r)"
-                >
-                  Cancelar
-                </button>
-                <span v-else-if="r.ESTADO === 'ACTIVA'" class="text-muted" style="font-size:0.8rem">Sin permisos</span>
+                <span class="stamp" :class="ESTADOS[r.ESTADO]?.stamp || 'stamp-neutral'">
+                  {{ ESTADOS[r.ESTADO]?.label || r.ESTADO }}
+                </span>
+              </td>
+              <td v-if="verAcciones">
+                <div v-if="r.ESTADO === 'ACTIVA'" class="cluster">
+                  <button
+                    class="btn btn-primary btn-sm"
+                    :disabled="!r.FECHA_EXPIRACION"
+                    :title="r.FECHA_EXPIRACION ? 'Entregar el libro y registrar el préstamo' : 'Aún no hay copia apartada para esta reserva'"
+                    @click="recogerReserva(r)"
+                  >
+                    Recogido
+                  </button>
+                  <button class="btn btn-outline btn-sm" @click="cancelarReserva(r)">Cancelar</button>
+                </div>
               </td>
             </tr>
             <tr v-if="!loading && !filtro.length">
-              <td :colspan="esBibliotecario ? 7 : 6" class="cell-empty">No hay reservas</td>
+              <td :colspan="columnas" class="cell-empty">No hay reservas</td>
             </tr>
           </tbody>
         </table>
@@ -215,13 +245,17 @@ onMounted(() => {
         </div>
         <table v-if="cola.length" class="data">
           <thead>
-            <tr><th>Posición</th><th>Usuario</th><th>Solicitado</th></tr>
+            <tr><th>Posición</th><th>Usuario</th><th>Solicitado</th><th>Recoger hasta</th></tr>
           </thead>
           <tbody>
             <tr v-for="(item, idx) in cola" :key="item.id_reserva">
               <td class="cell-mono">#{{ idx + 1 }}</td>
               <td>{{ item.nombre_usuario || `Usuario #${item.id_usuario}` }}</td>
               <td>{{ new Date(item.fecha_reserva).toLocaleString() }}</td>
+              <td>
+                <template v-if="item.fecha_expiracion">{{ new Date(item.fecha_expiracion).toLocaleString() }}</template>
+                <span v-else class="text-muted">En espera de copia</span>
+              </td>
             </tr>
           </tbody>
         </table>

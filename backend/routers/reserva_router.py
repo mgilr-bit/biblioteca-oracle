@@ -4,8 +4,9 @@ Handlers sync (no `async def`) porque la sesión de BD hace I/O bloqueante
 contra Oracle — FastAPI los corre en threadpool.
 
 Autorización (Casbin, RBAC+ABAC): BIBLIOTECARIO/ADMIN ve y gestiona la
-lista completa y la cola; un LECTOR/PROFESOR solo lee/cancela las suyas
-(`/usuario/{id}` y `/{id}/cancelar` con chequeo de dueño).
+lista completa y la cola, y es el único que cancela o marca como recogida
+una reserva; un LECTOR/PROFESOR crea y consulta solo las suyas
+(`/usuario/{id}` con chequeo de dueño).
 """
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
@@ -16,6 +17,7 @@ from dependencies.db import get_db_session
 from dependencies.rbac import require_permission, require_permission_owned
 from schemas.common import MessageResponse
 from schemas.reserva import ReservaCreate, ReservaResponse
+from services.prestamo_service import PrestamoService
 from services.reserva_service import ReservaService
 
 router = APIRouter()
@@ -61,6 +63,15 @@ def create_reserva(
 def cancelar_reserva(
     id_reserva: int,
     session: Session = Depends(get_db_session),
-    user: SessionUser = Depends(require_permission_owned("Reserva", "cancel", "id_reserva")),
+    user: SessionUser = Depends(require_permission("Reserva", "cancel")),
 ):
     return ReservaService(session).cancelar(id_reserva, requesting_user=user)
+
+
+@router.put("/{id_reserva}/recoger", response_model=MessageResponse)
+def recoger_reserva(
+    id_reserva: int,
+    session: Session = Depends(get_db_session),
+    user: SessionUser = Depends(require_permission("Reserva", "recoger")),
+):
+    return PrestamoService(session).recoger_reserva(id_reserva, requesting_user=user)

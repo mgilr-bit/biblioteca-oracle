@@ -74,6 +74,7 @@ class AuditoriaService(BaseService[Auditoria]):
             "MULTA_CONDONADA",
             "RESERVA_CREADA",
             "RESERVA_CANCELADA",
+            "RESERVA_RECOGIDA",
             "USUARIO_CREADO",
             "USUARIO_ACTUALIZADO",
             "USUARIO_ELIMINADO",

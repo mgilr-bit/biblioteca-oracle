@@ -48,7 +48,8 @@ export const reservasAPI = {
   getByUsuario: (idUsuario) => http.get(`/reservas/usuario/${idUsuario}`),
   getCola: (idLibro) => http.get(`/reservas/cola/${idLibro}`),
   create: (reserva) => http.post('/reservas/', reserva),
-  cancelar: (id) => http.put(`/reservas/${id}/cancelar`)
+  cancelar: (id) => http.put(`/reservas/${id}/cancelar`),
+  recoger: (id) => http.put(`/reservas/${id}/recoger`)
 }
 
 export const editorialesAPI = {

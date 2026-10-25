@@ -93,16 +93,16 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Editorial", "delete", "false"),
     ("LECTOR", "Editorial", "read", "false"),
     ("PROFESOR", "Editorial", "read", "false"),
-    # Reservas: biblioteca gestiona todas; LECTOR/PROFESOR crea y atiende las suyas.
+    # Reservas: biblioteca gestiona todas (cancelar, marcar recogida);
+    # LECTOR/PROFESOR crea y consulta solo las suyas.
     ("BIBLIOTECARIO", "Reserva", "read", "false"),
     ("BIBLIOTECARIO", "Reserva", "create", "false"),
     ("BIBLIOTECARIO", "Reserva", "cancel", "false"),
+    ("BIBLIOTECARIO", "Reserva", "recoger", "false"),
     ("LECTOR", "Reserva", "read", "true"),
     ("LECTOR", "Reserva", "create", "false"),
-    ("LECTOR", "Reserva", "cancel", "true"),
     ("PROFESOR", "Reserva", "read", "true"),
     ("PROFESOR", "Reserva", "create", "false"),
-    ("PROFESOR", "Reserva", "cancel", "true"),
     # Notificaciones: bandeja personal (owner_only para LECTOR/PROFESOR);
     # BIBLIOTECARIO lee todas (asiste a usuarios); mantenimiento solo ADMIN.
     ("BIBLIOTECARIO", "Notificacion", "read", "false"),
@@ -140,6 +140,9 @@ REVOKED_POLICIES = [
     ("BIBLIOTECARIO", "Ejemplar", "delete", "false"),
     ("LECTOR", "Ejemplar", "read", "false"),
     ("PROFESOR", "Ejemplar", "read", "false"),
+    # Las acciones sobre reservas (cancelar/recoger) son solo de la biblioteca (2026-10-24).
+    ("LECTOR", "Reserva", "cancel", "true"),
+    ("PROFESOR", "Reserva", "cancel", "true"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

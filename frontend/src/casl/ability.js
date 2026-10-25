@@ -36,7 +36,8 @@ export function buildAbilityFor(user) {
     }
     can('read', 'Multa', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
-    can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })
+    // Cancelar y marcar recogida es solo de la biblioteca (backend lo revalida).
+    can(['create', 'read'], 'Reserva', { id_usuario: user.id })
     can('read', 'Editorial')
     can('read', 'Multa')
   }

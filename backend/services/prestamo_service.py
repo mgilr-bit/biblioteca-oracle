@@ -2,7 +2,7 @@
 from datetime import timedelta
 from typing import List, Optional
 
-from core.messages import PrestamoMessages
+from core.messages import PrestamoMessages, ReservaMessages
 from core.roles import puede_operar_por_terceros
 from core.zona_horaria import ahora_utc
 from models.prestamo import Prestamo
@@ -89,11 +89,17 @@ class PrestamoService(BaseService[Prestamo]):
         if self.multa_service.usuario_tiene_pendientes(id_usuario):
             raise BusinessRuleError(PrestamoMessages.MULTAS_PENDIENTES)
 
+        # Vence las reservas sin recoger antes de contar copias apartadas.
+        self.reserva_service.actualizar_estados()
+
         libro = self.libro_repo.get_by_id(id_libro)
         if libro and libro.estado != "DISPONIBLE":
             raise BusinessRuleError(PrestamoMessages.LIBRO_NO_DISPONIBLE.format(estado=ESTADO_ETIQUETAS.get(libro.estado, libro.estado)))
         if not libro or libro.copias_disponibles <= 0:
             raise BusinessRuleError(PrestamoMessages.SIN_COPIAS)
+        # Las copias apartadas para reservas de otros no se prestan.
+        if libro.copias_disponibles - self.reserva_service.copias_apartadas_para_otros(id_libro, id_usuario) <= 0:
+            raise BusinessRuleError(PrestamoMessages.COPIAS_APARTADAS)
 
         prestamo = Prestamo(
             id_libro=id_libro,
@@ -101,6 +107,8 @@ class PrestamoService(BaseService[Prestamo]):
             fecha_devolucion_esperada=ahora_utc() + timedelta(days=dias),
         )
         self.repository.add(prestamo, actor=requesting_user.email)
+        # Si el usuario tenía una reserva de este libro, este préstamo la cumple.
+        self.reserva_service.marcar_recogida(id_libro, id_usuario, actor=requesting_user.email)
 
         AuditoriaService(self.repository.session).registrar(
             "PRESTAMO_CREADO",
@@ -114,6 +122,29 @@ class PrestamoService(BaseService[Prestamo]):
 
         return {"success": True, "message": "Préstamo creado exitosamente"}
 
+    def recoger_reserva(self, id_reserva: int, requesting_user) -> dict:
+        """El usuario pasó por su reserva: se le presta el libro y la reserva
+        queda RECOGIDA (lo hace `create` vía `marcar_recogida`)."""
+        self.reserva_service.actualizar_estados()
+        reserva = self.reserva_service.get_by_id(id_reserva)
+        if reserva.estado != "ACTIVA":
+            raise ValidationError(ReservaMessages.NO_RECOGIBLE)
+        if reserva.fecha_expiracion is None:
+            raise BusinessRuleError(ReservaMessages.EN_COLA)
+
+        self.create(reserva.id_libro, reserva.id_usuario, None, requesting_user)
+
+        AuditoriaService(self.repository.session).registrar(
+            "RESERVA_RECOGIDA",
+            "Reserva",
+            id_usuario=requesting_user.id,
+            email=requesting_user.email,
+            rol=requesting_user.rol,
+            id_recurso=reserva.id_reserva,
+            detalle=f"Libro #{reserva.id_libro} entregado a usuario #{reserva.id_usuario}",
+        )
+        return {"success": True, "message": ReservaMessages.RECOGIDA}
+
     def devolver(self, id_prestamo: int, actor: str) -> dict:
         prestamo = self.get_by_id(id_prestamo)
         if prestamo.estado == "DEVUELTO":
@@ -124,9 +155,9 @@ class PrestamoService(BaseService[Prestamo]):
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
 
-        # Fase 3 (reservas): al volver una copia, la reserva FIFO más antigua
-        # pasa a CUMPLIDA y abre su ventana de recogida para el reservante.
-        self.reserva_service.promover_siguiente(prestamo.id_libro)
+        # Fase 3 (reservas): la copia que vuelve se aparta a la reserva más
+        # antigua de la cola, que tiene 3 días para recogerla.
+        self.reserva_service.repartir_copias(prestamo.id_libro, actor=actor)
 
         # Fase 5 (multas): si la devolución fue tardía se genera la multa.
         multa = self.multa_service.generar_por_devolucion_tardia(prestamo, actor=actor)

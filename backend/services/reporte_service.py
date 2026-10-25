@@ -41,7 +41,7 @@ UMBRAL_BAJO_STOCK = 2
 DIAS_POR_VENCER = 3
 
 MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-ESTADOS_RESERVA = ("ACTIVA", "CUMPLIDA", "CANCELADA", "EXPIRADA")
+ESTADOS_RESERVA = {"ACTIVA": "Activas", "RECOGIDA": "Recogidas", "SIN_RECOGER": "Sin recoger", "CANCELADA": "Canceladas"}
 ROLES = ("ADMIN", "BIBLIOTECARIO", "PROFESOR", "LECTOR")
 VISTAS_PRESTAMO = {"todos": "Todos", "activos": "Activos (incluye vencidos)", "vencidos": "Vencidos"}
 TIPOS_NOTIFICACION = {
@@ -273,7 +273,7 @@ class ReporteService:
             subtitulo="Reservas de todos los usuarios" if ver_todo else "Reservas a nombre del usuario en sesión",
             filtros=_filtros(("Estado", estado)),
             indicadores=[_ind("Reservas", len(reservas))]
-            + [_ind(f"{e.capitalize()}s", por_estado[e]) for e in ESTADOS_RESERVA],
+            + [_ind(etiqueta, por_estado[e]) for e, etiqueta in ESTADOS_RESERVA.items()],
             tablas=[construir_tabla("Reservas", columnas, [r.model_dump() for r in reservas])],
             notas=notas,
         )
