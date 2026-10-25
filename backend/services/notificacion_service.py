@@ -6,13 +6,15 @@ vivir en el backend puede dispararse bajo demanda por un ADMIN y es
 idempotente (no duplica recordatorios/avisos). Genera:
 
 * Recordatorios de devolución (3 días antes y el mismo día).
-* Avisos de vencimiento (préstamos ACTIVO ya vencidos).
+* Multas de préstamos ACTIVO que pasaron su fecha límite (con aviso al
+  usuario y al personal; ver MultaService.generar_por_atraso).
 * Reservas sin recoger: las ACTIVA cuya ventana de 3 días venció pasan a
   SIN_RECOGER (ver ReservaService.actualizar_estados).
 """
 from datetime import timedelta
 from typing import List
 
+from config.database import get_session
 from core.messages import NotificacionMessages
 from core.zona_horaria import ahora_utc
 from models.notificacion import Notificacion
@@ -20,6 +22,7 @@ from repositories.notificacion_repository import NotificacionRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.notificacion import NotificacionResponse
 from services.base import BaseService
+from services.multa_service import MultaService
 from services.reserva_service import ReservaService
 
 RECORDATORIO_DIAS = 3
@@ -83,15 +86,11 @@ class NotificacionService(BaseService[Notificacion]):
             if self._generar_si_no_existe(id_usuario, tipo, plantilla.format(id=id_prestamo), actor):
                 generadas += 1
 
-        # 2) Avisos de vencimiento.
-        for id_prestamo, id_usuario, esperada in self.prestamo_repo.get_vencidos_raw():
-            dias = (ahora.date() - esperada.date()).days
-            if self._generar_si_no_existe(
-                id_usuario,
-                "VENCIDO",
-                NotificacionMessages.VENCIDO.format(dias=dias, id=id_prestamo),
-                actor,
-            ):
+        # 2) Préstamos que pasaron su fecha límite: se genera la multa (una
+        #    por préstamo) y se avisa al usuario y al personal.
+        multas = MultaService(self.repository.session)
+        for id_prestamo, _id_usuario, _esperada in self.prestamo_repo.get_vencidos_raw():
+            if multas.generar_por_atraso(self.prestamo_repo.get_by_id(id_prestamo), actor=actor):
                 generadas += 1
 
         # 3) Reservas cuya ventana de recogida venció -> SIN_RECOGER.
@@ -103,3 +102,10 @@ class NotificacionService(BaseService[Notificacion]):
             "notificaciones_generadas": generadas,
             "reservas_expiradas": expiradas,
         }
+
+
+def ejecutar_mantenimiento_programado() -> dict:
+    """Corre el mantenimiento con su propia sesión (lo usa la tarea de fondo
+    que arranca `main.lifespan`; la BD no tiene un scheduler propio)."""
+    with get_session() as session:
+        return NotificacionService(session).ejecutar_mantenimiento(actor="sistema")

@@ -1,23 +1,34 @@
 """Servicios de gestión de multas por devolución tardía.
 
-Regla: multa fija de TARIFA_MULTA_ATRASO (Q35) generada automáticamente por
-PrestamoService cuando la devolución ocurre después de la fecha esperada. Una
+Regla: multa fija de TARIFA_MULTA_ATRASO (Q35), una por préstamo, generada
+automáticamente en cuanto el préstamo pasa su fecha límite sin devolverse
+(job de mantenimiento) o al registrar una devolución tardía. Una
 multa en PENDIENTE bloquea la creación de nuevos préstamos para el usuario
 hasta que un BIBLIOTECARIO la marque como PAGADA.
 """
+import math
 from typing import List, Optional
 
-from core.messages import MultaMessages, PrestamoMessages
+from core.messages import MultaMessages, NotificacionMessages, PrestamoMessages
 from core.zona_horaria import ahora_utc
+from models.libro import Libro
 from models.multa import Multa
 from models.prestamo import Prestamo
+from models.usuario import Usuario
 from repositories.multa_repository import MultaRepository
 from schemas.multa import MultaResponse
+from services import avisos
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import NotFoundError, ValidationError
 
 TARIFA_MULTA_ATRASO = 35.0
+
+
+def dias_de_retraso(esperada, momento) -> int:
+    """Días de atraso redondeados hacia arriba: pasarse unas horas cuenta 1."""
+    segundos = (momento - esperada).total_seconds()
+    return max(1, math.ceil(segundos / 86400))
 
 
 class MultaService(BaseService[Multa]):
@@ -57,29 +68,60 @@ class MultaService(BaseService[Multa]):
     def usuario_tiene_pendientes(self, id_usuario: int) -> bool:
         return self.repository.usuario_tiene_pendientes(id_usuario)
 
-    def generar_por_devolucion_tardia(
-        self, prestamo: Prestamo, actor: Optional[str] = None
-    ) -> Optional[Multa]:
-        """Crea la multa solo si la devolución fue tardía y no hay ya una
-        pendiente para ese préstamo (idempotente). Devuelve la multa o None."""
+    def generar_por_atraso(self, prestamo: Prestamo, actor: Optional[str] = None) -> Optional[Multa]:
+        """Genera la multa en cuanto el préstamo pasa su fecha límite sin
+        devolverse (job de mantenimiento) o, si el job aún no pasó, al
+        registrar la devolución tardía. Una sola multa por préstamo
+        (idempotente). Avisa al usuario y al personal. Devuelve la multa
+        nueva o None."""
         if not prestamo.fecha_devolucion_esperada:
             return None
-        momento_devolucion = prestamo.fecha_devolucion_real or ahora_utc()
-        dias = (momento_devolucion - prestamo.fecha_devolucion_esperada).days
-        if dias <= 0:
+        momento = prestamo.fecha_devolucion_real or ahora_utc()
+        if momento <= prestamo.fecha_devolucion_esperada:
             return None
-        if self.repository.get_pendiente_by_prestamo(prestamo.id_prestamo):
+        if self.repository.get_by_prestamo(prestamo.id_prestamo):
             return None
 
         multa = Multa(
             id_prestamo=prestamo.id_prestamo,
             id_usuario=prestamo.id_usuario,
             monto=TARIFA_MULTA_ATRASO,
-            dias_retraso=dias,
+            dias_retraso=dias_de_retraso(prestamo.fecha_devolucion_esperada, momento),
             estado="PENDIENTE",
-            motivo=MultaMessages.MOTIVO_ATRASO.format(dias=dias),
+            motivo=MultaMessages.MOTIVO_VENCIDO.format(fecha=avisos.fecha(prestamo.fecha_devolucion_esperada)),
         )
         self.repository.add(multa, actor=actor)
+
+        session = self.repository.session
+        libro = session.get(Libro, prestamo.id_libro)
+        usuario = session.get(Usuario, prestamo.id_usuario)
+        datos = {
+            "titulo": libro.titulo if libro else f"#{prestamo.id_libro}",
+            "nombre": usuario.nombre if usuario else f"Usuario #{prestamo.id_usuario}",
+            "fecha": avisos.fecha(prestamo.fecha_devolucion_esperada),
+            "monto": f"{TARIFA_MULTA_ATRASO:.2f}",
+        }
+        avisos.avisar_usuario(session, prestamo.id_usuario, "MULTA", NotificacionMessages.MULTA_GENERADA.format(**datos))
+        avisos.avisar_personal(session, "MULTA", NotificacionMessages.PERSONAL_MULTA.format(**datos))
+
+        AuditoriaService(session).registrar(
+            "MULTA_GENERADA",
+            "Multa",
+            email=actor,
+            id_recurso=multa.id_multa,
+            detalle=f"Prestamo #{prestamo.id_prestamo} vencido sin devolver, Q{multa.monto}",
+        )
+        return multa
+
+    def cerrar_atraso(self, prestamo: Prestamo, actor: Optional[str] = None) -> Optional[Multa]:
+        """Al devolver tarde, deja en la multa pendiente los días reales de
+        retraso. Devuelve esa multa (o None si no hay una pendiente)."""
+        multa = self.repository.get_pendiente_by_prestamo(prestamo.id_prestamo)
+        if multa and prestamo.fecha_devolucion_real and prestamo.fecha_devolucion_esperada:
+            multa.dias_retraso = dias_de_retraso(prestamo.fecha_devolucion_esperada, prestamo.fecha_devolucion_real)
+            multa.motivo = MultaMessages.MOTIVO_ATRASO.format(dias=multa.dias_retraso)
+            self.repository.mark_updated(multa, actor=actor)
+            self.repository.flush()
         return multa
 
     def pagar(self, id_multa: int, actor: str) -> dict:

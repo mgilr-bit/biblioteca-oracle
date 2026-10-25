@@ -52,6 +52,14 @@ class MultaRepository(BaseRepository[Multa]):
         )
         return self.session.exec(stmt).first()
 
+    def get_by_prestamo(self, id_prestamo: int) -> Multa | None:
+        """Cualquier multa del préstamo (pendiente, pagada o condonada)."""
+        stmt = select(Multa).where(
+            Multa.id_prestamo == id_prestamo,
+            Multa.is_deleted == False,  # noqa: E712
+        )
+        return self.session.exec(stmt).first()
+
     def usuario_tiene_pendientes(self, id_usuario: int) -> bool:
         """True si el usuario tiene al menos una multa en PENDIENTE (bloqueo
         de nuevos préstamos)."""

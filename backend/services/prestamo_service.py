@@ -2,18 +2,19 @@
 from datetime import timedelta
 from typing import List, Optional
 
-from core.messages import PrestamoMessages, ReservaMessages
+from core.messages import NotificacionMessages, PrestamoMessages, ReservaMessages
 from core.roles import puede_operar_por_terceros
 from core.zona_horaria import ahora_utc
 from models.prestamo import Prestamo
 from repositories.libro_repository import LibroRepository
 from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
+from services import avisos
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
 from services.libro_service import ESTADO_ETIQUETAS
-from services.multa_service import MultaService
+from services.multa_service import MultaService, dias_de_retraso
 from services.reserva_service import ReservaService
 
 DIAS_PRESTAMO_DEFAULT = 14
@@ -108,7 +109,14 @@ class PrestamoService(BaseService[Prestamo]):
         )
         self.repository.add(prestamo, actor=requesting_user.email)
         # Si el usuario tenía una reserva de este libro, este préstamo la cumple.
-        self.reserva_service.marcar_recogida(id_libro, id_usuario, actor=requesting_user.email)
+        reserva = self.reserva_service.marcar_recogida(id_libro, id_usuario, actor=requesting_user.email)
+        plantilla = NotificacionMessages.RESERVA_RECOGIDA if reserva else NotificacionMessages.PRESTAMO_REGISTRADO
+        avisos.avisar_usuario(
+            self.repository.session,
+            id_usuario,
+            "RESERVA_RECOGIDA" if reserva else "PRESTAMO",
+            plantilla.format(titulo=libro.titulo, fecha=avisos.fecha(prestamo.fecha_devolucion_esperada)),
+        )
 
         AuditoriaService(self.repository.session).registrar(
             "PRESTAMO_CREADO",
@@ -159,15 +167,32 @@ class PrestamoService(BaseService[Prestamo]):
         # antigua de la cola, que tiene 3 días para recogerla.
         self.reserva_service.repartir_copias(prestamo.id_libro, actor=actor)
 
-        # Fase 5 (multas): si la devolución fue tardía se genera la multa.
-        multa = self.multa_service.generar_por_devolucion_tardia(prestamo, actor=actor)
+        # Fase 5 (multas): normalmente el job ya generó la multa al vencer el
+        # préstamo; si todavía no pasó, se genera aquí. Luego se fijan los
+        # días reales de retraso.
+        self.multa_service.generar_por_atraso(prestamo, actor=actor)
+        multa = self.multa_service.cerrar_atraso(prestamo, actor=actor)
+
+        libro = self.libro_repo.get_by_id(prestamo.id_libro)
+        titulo = libro.titulo if libro else f"#{prestamo.id_libro}"
+        if prestamo.fecha_devolucion_real > prestamo.fecha_devolucion_esperada:
+            dias = dias_de_retraso(prestamo.fecha_devolucion_esperada, prestamo.fecha_devolucion_real)
+            mensaje = (
+                NotificacionMessages.DEVOLUCION_TARDIA_MULTA.format(titulo=titulo, dias=dias, monto=f"{multa.monto:.2f}")
+                if multa
+                else NotificacionMessages.DEVOLUCION_TARDIA.format(titulo=titulo, dias=dias)
+            )
+        else:
+            mensaje = NotificacionMessages.DEVOLUCION_A_TIEMPO.format(titulo=titulo)
+        avisos.avisar_usuario(self.repository.session, prestamo.id_usuario, "DEVOLUCION", mensaje)
+
         if multa is not None:
             AuditoriaService(self.repository.session).registrar(
-                "MULTA_GENERADA",
-                "Multa",
+                "PRESTAMO_DEVUELTO",
+                "Prestamo",
                 email=actor,
-                id_recurso=multa.id_multa,
-                detalle=f"Prestamo #{prestamo.id_prestamo}: {multa.dias_retraso} día(s) de retraso, Q{multa.monto}",
+                id_recurso=prestamo.id_prestamo,
+                detalle=f"Devuelto con {multa.dias_retraso} día(s) de retraso; multa #{multa.id_multa} pendiente",
             )
             return {
                 "success": True,

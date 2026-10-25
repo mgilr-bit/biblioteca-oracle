@@ -66,11 +66,27 @@ class NotificacionMessages:
     NOT_FOUND = "Notificación no encontrada"
     RECORDATORIO_HOY = "Su préstamo #{id} vence HOY. Devuélvalo a tiempo para evitar multas."
     RECORDATORIO_3D = "El préstamo #{id} vence en 3 días. Recuerde devolverlo a tiempo."
-    VENCIDO = "Su préstamo #{id} lleva {dias} día(s) de retraso. Devuélvalo para evitar una multa."
     RESERVA_DISPONIBLE = "Una copia de su libro reservado está disponible. Recójala en la biblioteca ({dias} días)."
     RESERVA_NUEVA_CON_COPIA = "Nueva reserva: {nombre} reservó \"{titulo}\". Puede recogerlo hasta el {hasta}."
     RESERVA_NUEVA_EN_COLA = "Nueva reserva: {nombre} reservó \"{titulo}\". Quedó en cola (no hay copias libres)."
-    MULTA_GENERADA = "Se generó una multa de Q{monto} por el préstamo #{id}. Regularice su estado."
+    # Al usuario dueño del préstamo/reserva.
+    PRESTAMO_REGISTRADO = "Se registró su préstamo de \"{titulo}\". Devuélvalo a más tardar el {fecha}."
+    DEVOLUCION_A_TIEMPO = "Devolvió \"{titulo}\" a tiempo. ¡Gracias!"
+    DEVOLUCION_TARDIA = "Se registró la devolución de \"{titulo}\" con {dias} día(s) de retraso."
+    DEVOLUCION_TARDIA_MULTA = (
+        "Se registró la devolución de \"{titulo}\" con {dias} día(s) de retraso. "
+        "Tiene una multa pendiente de Q{monto}."
+    )
+    MULTA_GENERADA = (
+        "Su préstamo de \"{titulo}\" venció el {fecha} sin devolverse y se generó una multa de Q{monto}. "
+        "Devuelva el libro y pase a pagarla."
+    )
+    RESERVA_RECOGIDA = "Recogió su reserva de \"{titulo}\". Devuélvalo a más tardar el {fecha}."
+    RESERVA_CANCELADA = "Su reserva de \"{titulo}\" fue cancelada por la biblioteca."
+    RESERVA_SIN_RECOGER = "Su reserva de \"{titulo}\" venció el {fecha} sin ser recogida."
+    # Al personal (BIBLIOTECARIO/ADMIN).
+    PERSONAL_MULTA = "{nombre} no devolvió \"{titulo}\" a tiempo (venció el {fecha}). Se generó una multa de Q{monto}."
+    PERSONAL_RESERVA_SIN_RECOGER = "{nombre} no recogió su reserva de \"{titulo}\" (venció el {fecha})."
 
 
 class PrestamoMessages:
@@ -82,7 +98,7 @@ class PrestamoMessages:
     LIBRO_NO_DISPONIBLE = "El libro no se puede prestar porque está {estado}"
     MULTAS_PENDIENTES = "El usuario tiene multas pendientes de pago"
     DEVOLUCION_CON_MULTA = (
-        "Devolución registrada. Se generó una multa de Q{monto} por {dias} día(s) de retraso"
+        "Devolución registrada con {dias} día(s) de retraso. El usuario tiene una multa pendiente de Q{monto}"
     )
 
 
@@ -91,6 +107,7 @@ class MultaMessages:
     NO_PENDIENTE = "La multa no está pendiente"
     PAGADA_OK = "Multa marcada como pagada"
     MOTIVO_ATRASO = "Devolución con {dias} día(s) de retraso"
+    MOTIVO_VENCIDO = "Préstamo vencido sin devolver (venció el {fecha})"
 
 
 class GenericMessages:

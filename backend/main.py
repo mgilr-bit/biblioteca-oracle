@@ -1,4 +1,5 @@
 """FastAPI app factory — reemplaza app.py (Flask)."""
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -33,6 +34,7 @@ from routers import (
     usuario_router,
 )
 from services.exceptions import ServiceError
+from services.notificacion_service import ejecutar_mantenimiento_programado
 
 if not os.path.exists("logs"):
     os.mkdir("logs")
@@ -46,11 +48,30 @@ logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def _mantenimiento_periodico(intervalo: int) -> None:
+    """Dispara el mantenimiento cada `intervalo` segundos: así los préstamos
+    vencidos generan su multa y las reservas vencen solas, con sus avisos.
+    Es idempotente, un fallo (p. ej. corte con la BD) solo se registra."""
+    while True:
+        try:
+            resultado = await asyncio.to_thread(ejecutar_mantenimiento_programado)
+            if resultado["notificaciones_generadas"] or resultado["reservas_expiradas"]:
+                logger.info("Mantenimiento automático: %s", resultado)
+        except Exception:  # noqa: BLE001
+            logger.exception("Mantenimiento automático falló")
+        await asyncio.sleep(intervalo)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     ensure_default_policies()
     logger.info("Biblioteca API startup")
+    tarea = None
+    if settings.MANTENIMIENTO_INTERVALO_SEGUNDOS > 0:
+        tarea = asyncio.create_task(_mantenimiento_periodico(settings.MANTENIMIENTO_INTERVALO_SEGUNDOS))
     yield
+    if tarea:
+        tarea.cancel()
 
 
 app = FastAPI(

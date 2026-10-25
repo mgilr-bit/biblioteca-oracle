@@ -25,15 +25,11 @@ export function buildAbilityFor(user) {
     }
   } else {
     // PROFESOR comparte el alcance de LECTOR por decisión de producto
-    // (2026-09-05): perfil, préstamos propios, lectura. Única diferencia:
-    // el LECTOR no registra préstamos (QA 2026-10-06).
+    // (2026-09-05): perfil, préstamos propios, lectura.
     can('read', 'Libro')
-    // El LECTOR solo consulta sus préstamos; el PROFESOR además los registra.
-    // El backend lo revalida (política Casbin retirada en REVOKED_POLICIES).
+    // Solo consultan sus préstamos: registrarlos es exclusivo de la biblioteca
+    // (2026-10-24). El backend lo revalida (políticas en REVOKED_POLICIES).
     can('read', 'Prestamo', { id_usuario: user.id })
-    if (user.rol === 'PROFESOR') {
-      can('create', 'Prestamo', { id_usuario: user.id })
-    }
     can('read', 'Multa', { id_usuario: user.id })
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
     // Cancelar y marcar recogida es solo de la biblioteca (backend lo revalida).

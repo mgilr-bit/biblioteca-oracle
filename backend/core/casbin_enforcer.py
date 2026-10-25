@@ -78,14 +78,13 @@ DEFAULT_POLICIES = [
     ("LECTOR", "Usuario", "update", "true"),
     ("PROFESOR", "Usuario", "read", "true"),
     ("PROFESOR", "Usuario", "update", "true"),
-    # Prestamos: BIBLIOTECARIO ve/gestiona todo; PROFESOR crea y lee solo los
-    # suyos; LECTOR solo los consulta (el préstamo se lo registra la biblioteca).
+    # Prestamos: BIBLIOTECARIO ve/gestiona todo; LECTOR/PROFESOR solo consultan
+    # los suyos (el préstamo se lo registra la biblioteca).
     ("BIBLIOTECARIO", "Prestamo", "read", "false"),
     ("BIBLIOTECARIO", "Prestamo", "create", "false"),
     ("BIBLIOTECARIO", "Prestamo", "devolver", "false"),
     ("LECTOR", "Prestamo", "read", "true"),
     ("PROFESOR", "Prestamo", "read", "true"),
-    ("PROFESOR", "Prestamo", "create", "false"),
     # Editoriales: catálogo legible para todos, gestionable solo por BIBLIOTECARIO/ADMIN.
     ("BIBLIOTECARIO", "Editorial", "read", "false"),
     ("BIBLIOTECARIO", "Editorial", "create", "false"),
@@ -133,6 +132,8 @@ REVOKED_POLICIES = [
     ("BIBLIOTECARIO", "Auditoria", "read", "false"),
     # El LECTOR ya no registra préstamos por su cuenta (QA 2026-10-06).
     ("LECTOR", "Prestamo", "create", "false"),
+    # Registrar préstamos pasó a ser exclusivo de BIBLIOTECARIO/ADMIN (2026-10-24).
+    ("PROFESOR", "Prestamo", "create", "false"),
     # Se retiró el módulo de ejemplares: estado y ubicación viven en el libro (2026-10-24).
     ("BIBLIOTECARIO", "Ejemplar", "read", "false"),
     ("BIBLIOTECARIO", "Ejemplar", "create", "false"),

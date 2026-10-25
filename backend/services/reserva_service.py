@@ -19,14 +19,13 @@ from typing import List, Optional
 
 from core.messages import NotificacionMessages, ReservaMessages
 from core.roles import puede_operar_por_terceros
-from core.zona_horaria import a_local, ahora_utc
-from models.notificacion import Notificacion
+from core.zona_horaria import ahora_utc
 from models.reserva import Reserva
+from models.usuario import Usuario
 from repositories.libro_repository import LibroRepository
-from repositories.notificacion_repository import NotificacionRepository
 from repositories.reserva_repository import ReservaRepository
-from repositories.usuario_repository import UsuarioRepository
 from schemas.reserva import ReservaResponse
+from services import avisos
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
@@ -128,7 +127,7 @@ class ReservaService(BaseService[Reserva]):
             detalle=f"Reserva del libro #{id_libro} para usuario #{id_usuario}",
         )
 
-        hasta = a_local(reserva.fecha_expiracion).strftime("%d/%m/%Y %H:%M") if reserva.fecha_expiracion else None
+        hasta = avisos.fecha_hora(reserva.fecha_expiracion) if reserva.fecha_expiracion else None
         # La biblioteca se entera de las reservas que hacen los propios
         # usuarios (las que registra el personal ya las conoce).
         if not puede_operar_por_terceros(requesting_user.rol):
@@ -143,12 +142,11 @@ class ReservaService(BaseService[Reserva]):
             mensaje = NotificacionMessages.RESERVA_NUEVA_CON_COPIA.format(nombre=nombre, titulo=titulo, hasta=hasta)
         else:
             mensaje = NotificacionMessages.RESERVA_NUEVA_EN_COLA.format(nombre=nombre, titulo=titulo)
-        notificaciones = NotificacionRepository(self.repository.session)
-        for personal in UsuarioRepository(self.repository.session).get_personal_activo():
-            notificaciones.add(
-                Notificacion(id_usuario=personal.id_usuario, tipo="RESERVA_NUEVA", mensaje=mensaje[:500]),
-                actor="sistema",
-            )
+        avisos.avisar_personal(self.repository.session, "RESERVA_NUEVA", mensaje)
+
+    def _titulo(self, id_libro: int) -> str:
+        libro = self.libro_repo.get_by_id(id_libro)
+        return libro.titulo if libro else f"#{id_libro}"
 
     def cancelar(self, id_reserva: int, requesting_user) -> dict:
         reserva = self.get_by_id(id_reserva)
@@ -161,6 +159,12 @@ class ReservaService(BaseService[Reserva]):
         self.repository.flush()
         if tenia_copia:
             self.repartir_copias(reserva.id_libro)
+        avisos.avisar_usuario(
+            self.repository.session,
+            reserva.id_usuario,
+            "RESERVA_CANCELADA",
+            NotificacionMessages.RESERVA_CANCELADA.format(titulo=self._titulo(reserva.id_libro)),
+        )
 
         AuditoriaService(self.repository.session).registrar(
             "RESERVA_CANCELADA",
@@ -198,13 +202,11 @@ class ReservaService(BaseService[Reserva]):
             reserva.fecha_expiracion = ahora_utc() + timedelta(days=DIAS_VALIDEZ)
             self.repository.mark_updated(reserva, actor=actor)
             if notificar:
-                NotificacionRepository(self.repository.session).add(
-                    Notificacion(
-                        id_usuario=reserva.id_usuario,
-                        tipo="RESERVA_DISPONIBLE",
-                        mensaje=NotificacionMessages.RESERVA_DISPONIBLE.format(dias=DIAS_VALIDEZ),
-                    ),
-                    actor=actor,
+                avisos.avisar_usuario(
+                    self.repository.session,
+                    reserva.id_usuario,
+                    "RESERVA_DISPONIBLE",
+                    NotificacionMessages.RESERVA_DISPONIBLE.format(dias=DIAS_VALIDEZ),
                 )
             apartadas += 1
         self.repository.flush()
@@ -215,9 +217,22 @@ class ReservaService(BaseService[Reserva]):
         copias que se liberan (también las devueltas desde la última vez).
         Idempotente; devuelve cuántas reservas vencieron."""
         vencidas = self.repository.get_vencidas_sin_recoger()
+        session = self.repository.session
         for reserva in vencidas:
             reserva.estado = "SIN_RECOGER"
             self.repository.mark_updated(reserva, actor=actor)
+            usuario = session.get(Usuario, reserva.id_usuario)
+            datos = {
+                "titulo": self._titulo(reserva.id_libro),
+                "nombre": usuario.nombre if usuario else f"Usuario #{reserva.id_usuario}",
+                "fecha": avisos.fecha(reserva.fecha_expiracion),
+            }
+            avisos.avisar_usuario(
+                session, reserva.id_usuario, "RESERVA_SIN_RECOGER", NotificacionMessages.RESERVA_SIN_RECOGER.format(**datos)
+            )
+            avisos.avisar_personal(
+                session, "RESERVA_SIN_RECOGER", NotificacionMessages.PERSONAL_RESERVA_SIN_RECOGER.format(**datos)
+            )
         if vencidas:
             self.repository.flush()
         for id_libro in self.repository.get_libros_con_cola():

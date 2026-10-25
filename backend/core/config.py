@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULT: str = "100/minute"
     RATE_LIMIT_AUTH: str = "5/1minutes"
 
+    # Cada cuánto corre el mantenimiento automático (recordatorios, multas de
+    # préstamos vencidos, reservas sin recoger). 0 lo desactiva.
+    MANTENIMIENTO_INTERVALO_SEGUNDOS: int = 300
+
     @property
     def is_production(self) -> bool:
         return self.ENV.lower() == "production"

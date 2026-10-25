@@ -50,6 +50,11 @@ TIPOS_NOTIFICACION = {
     "VENCIDO": "Vencimiento",
     "RESERVA_DISPONIBLE": "Reserva disponible",
     "RESERVA_NUEVA": "Nueva reserva",
+    "RESERVA_RECOGIDA": "Reserva recogida",
+    "RESERVA_CANCELADA": "Reserva cancelada",
+    "RESERVA_SIN_RECOGER": "Reserva sin recoger",
+    "PRESTAMO": "Préstamo",
+    "DEVOLUCION": "Devolución",
     "MULTA": "Multa",
     "SISTEMA": "Sistema",
 }
