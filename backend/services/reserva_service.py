@@ -61,8 +61,13 @@ class ReservaService(BaseService[Reserva]):
 
     def get_cola(self, id_libro: int) -> List[dict]:
         return [
-            {"id_reserva": r.id_reserva, "id_usuario": r.id_usuario, "fecha_reserva": r.fecha_reserva}
-            for r in self.repository.get_activas_fifo(id_libro)
+            {
+                "id_reserva": r.id_reserva,
+                "id_usuario": r.id_usuario,
+                "nombre_usuario": nombre_usuario,
+                "fecha_reserva": r.fecha_reserva,
+            }
+            for r, _titulo, _autor, nombre_usuario in self.repository.get_cola_with_details(id_libro)
         ]
 
     def create(self, id_libro: int, id_usuario: Optional[int], requesting_user) -> dict:

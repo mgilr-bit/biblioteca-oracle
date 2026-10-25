@@ -64,6 +64,15 @@ class ReservaRepository(BaseRepository[Reserva]):
         )
         return list(self.session.exec(stmt))
 
+    def get_cola_with_details(self, id_libro: int) -> list:
+        """Misma cola FIFO que `get_activas_fifo`, con el nombre del usuario."""
+        stmt = (
+            self._query_with_details()
+            .where(Reserva.id_libro == id_libro, Reserva.estado == "ACTIVA")
+            .order_by(Reserva.fecha_reserva)
+        )
+        return list(self.session.execute(stmt).all())
+
     def get_cumplidas_expiradas(self) -> List[Reserva]:
         """Reservas CUMPLIDA cuya ventana de recogida ya venció (para el job)."""
         stmt = (

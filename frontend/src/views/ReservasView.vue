@@ -220,7 +220,7 @@ onMounted(() => {
           <tbody>
             <tr v-for="(item, idx) in cola" :key="item.id_reserva">
               <td class="cell-mono">#{{ idx + 1 }}</td>
-              <td>{{ item.id_usuario }}</td>
+              <td>{{ item.nombre_usuario || `Usuario #${item.id_usuario}` }}</td>
               <td>{{ new Date(item.fecha_reserva).toLocaleString() }}</td>
             </tr>
           </tbody>
