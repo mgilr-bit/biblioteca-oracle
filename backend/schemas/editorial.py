@@ -11,6 +11,7 @@ class EditorialResponse(BaseModel):
     nombre: str = Field(alias="NOMBRE")
     pais: Optional[str] = Field(default=None, alias="PAIS")
     sitio_web: Optional[str] = Field(default=None, alias="SITIO_WEB")
+    total_libros: int = Field(default=0, alias="TOTAL_LIBROS")
 
 
 class EditorialListResponse(BaseModel):

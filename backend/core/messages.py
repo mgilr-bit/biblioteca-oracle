@@ -36,6 +36,7 @@ class LibroMessages:
     NOT_FOUND = "Libro no encontrado"
     CAMPOS_REQUERIDOS = "Los campos titulo y autor son requeridos"
     COPIAS_REQUERIDO = "copias_disponibles es requerido"
+    EDITORIAL_NO_EXISTE = "La editorial seleccionada no existe"
 
 
 class EditorialMessages:

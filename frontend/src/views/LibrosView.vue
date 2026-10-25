@@ -89,7 +89,7 @@ const editingId = ref(null)
 const form = ref(emptyForm())
 
 function emptyForm() {
-  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', editorial: '', copias: 1 }
+  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', idEditorial: '', copias: 1 }
 }
 
 function openCreate() {
@@ -106,7 +106,7 @@ function openEdit(libro) {
     isbn: libro.ISBN || '',
     anio: libro.ANIO_PUBLICACION || '',
     genero: libro.GENERO || '',
-    editorial: libro.EDITORIAL || '',
+    idEditorial: libro.ID_EDITORIAL || '',
     copias: libro.NUMERO_COPIAS
   }
   showModal.value = true
@@ -122,7 +122,7 @@ async function saveLibro() {
     isbn: emptyToNull(form.value.isbn),
     anio_publicacion: form.value.anio ? parseInt(form.value.anio) : null,
     genero: emptyToNull(form.value.genero),
-    editorial: emptyToNull(form.value.editorial),
+    id_editorial: form.value.idEditorial ? parseInt(form.value.idEditorial) : null,
     numero_copias: form.value.copias ? parseInt(form.value.copias) : 1
   }
 
@@ -203,7 +203,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>ID</th><th>Título</th><th>Autor</th><th>ISBN</th><th>Año</th>
-              <th>Género</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
+              <th>Género</th><th>Editorial</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -214,6 +214,7 @@ onMounted(() => {
               <td class="cell-mono">{{ libro.ISBN || '-' }}</td>
               <td>{{ libro.ANIO_PUBLICACION || '-' }}</td>
               <td>{{ libro.GENERO || '-' }}</td>
+              <td>{{ libro.EDITORIAL || '-' }}</td>
               <td>{{ libro.NUMERO_COPIAS }}</td>
               <td>
                 <span class="stamp" :class="libro.COPIAS_DISPONIBLES > 0 ? 'stamp-success' : 'stamp-danger'">
@@ -229,7 +230,7 @@ onMounted(() => {
               </td>
             </tr>
             <tr v-if="!loading && !paginatedLibros.length">
-              <td colspan="9" class="cell-empty">{{ emptyMessage }}</td>
+              <td colspan="10" class="cell-empty">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>
@@ -270,10 +271,10 @@ onMounted(() => {
         </div>
         <div class="field">
           <label for="editorial">Editorial</label>
-          <input id="editorial" v-model="form.editorial" class="input" list="editoriales-list" />
-          <datalist id="editoriales-list">
-            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.NOMBRE" />
-          </datalist>
+          <select id="editorial" v-model="form.idEditorial" class="select">
+            <option value="">Sin editorial</option>
+            <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.ID_EDITORIAL">{{ e.NOMBRE }}</option>
+          </select>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="copias">Número de copias</label>

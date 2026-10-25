@@ -4,10 +4,12 @@ Devuelven entidades SQLModel (o listas de ellas); el mapeo a DTO de
 respuesta lo hace el router vía `response_model`.
 """
 import logging
-from typing import List
+from typing import List, Optional, Tuple
 
 from core.messages import LibroMessages
+from models.editorial import Editorial
 from models.libro import Libro
+from repositories.editorial_repository import EditorialRepository
 from repositories.libro_repository import LibroRepository
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
@@ -23,6 +25,29 @@ class LibroService(BaseService[Libro]):
 
     def __init__(self, session):
         super().__init__(LibroRepository(session))
+        self.editoriales = EditorialRepository(session)
+
+    def _resolver_editorial(self, data: dict, actor: str) -> Tuple[Optional[int], Optional[str]]:
+        """Devuelve (id_editorial, nombre) desde el catálogo.
+
+        `id_editorial` manda; `editorial` (texto) queda como copia del nombre.
+        Si un cliente de la API manda solo el texto, se busca por nombre y,
+        si no existe, se agrega al catálogo para que el libro quede ligado.
+        """
+        id_editorial = data.get("id_editorial")
+        if id_editorial:
+            editorial = self.editoriales.get_by_id(int(id_editorial))
+            if not editorial:
+                raise ValidationError(LibroMessages.EDITORIAL_NO_EXISTE)
+            return editorial.id_editorial, editorial.nombre
+
+        nombre = (data.get("editorial") or "").strip()
+        if not nombre:
+            return None, None
+        editorial = self.editoriales.get_by_nombre(nombre)
+        if not editorial:
+            editorial = self.editoriales.add(Editorial(nombre=nombre), actor=actor)
+        return editorial.id_editorial, editorial.nombre
 
     def get_all(self, page, per_page, limit) -> dict:
         page = max(page or 1, 1)
@@ -62,6 +87,7 @@ class LibroService(BaseService[Libro]):
             raise ValidationError(LibroMessages.CAMPOS_REQUERIDOS)
 
         numero_copias = int(data.get("numero_copias", 1) or 1)
+        id_editorial, editorial = self._resolver_editorial(data, actor)
         libro = Libro(
             titulo=titulo,
             autor=autor,
@@ -70,8 +96,8 @@ class LibroService(BaseService[Libro]):
             genero=data.get("genero"),
             numero_copias=numero_copias,
             copias_disponibles=numero_copias,
-            id_editorial=data.get("id_editorial"),
-            editorial=data.get("editorial"),
+            id_editorial=id_editorial,
+            editorial=editorial,
         )
         self.repository.add(libro, actor=actor)
 
@@ -95,6 +121,8 @@ class LibroService(BaseService[Libro]):
                 f"Hay {libro.numero_copias - libro.copias_disponibles} copias prestadas."
             )
 
+        id_editorial, editorial = self._resolver_editorial(data, actor)
+
         libro.titulo = titulo
         libro.autor = autor
         libro.isbn = data.get("isbn")
@@ -102,8 +130,8 @@ class LibroService(BaseService[Libro]):
         libro.genero = data.get("genero")
         libro.numero_copias = nuevas_copias
         libro.copias_disponibles = nuevas_disponibles
-        libro.id_editorial = data.get("id_editorial")
-        libro.editorial = data.get("editorial")
+        libro.id_editorial = id_editorial
+        libro.editorial = editorial
         self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()
 

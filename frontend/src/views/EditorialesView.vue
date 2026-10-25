@@ -112,7 +112,7 @@ onMounted(loadEditoriales)
         <table class="data">
           <thead>
             <tr>
-              <th>ID</th><th>Nombre</th><th>País</th><th>Sitio web</th><th>Acciones</th>
+              <th>ID</th><th>Nombre</th><th>País</th><th>Sitio web</th><th>Libros</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -126,6 +126,7 @@ onMounted(loadEditoriales)
                 </a>
                 <span v-else>-</span>
               </td>
+              <td>{{ editorial.TOTAL_LIBROS ?? 0 }}</td>
               <td>
                 <div class="cluster">
                   <button v-can:update="'Editorial'" class="btn btn-outline btn-sm btn-icon" title="Editar" @click="openEdit(editorial)">✎</button>
@@ -135,7 +136,7 @@ onMounted(loadEditoriales)
               </td>
             </tr>
             <tr v-if="!loading && !editoriales.length">
-              <td colspan="5" class="cell-empty">{{ emptyMessage }}</td>
+              <td colspan="6" class="cell-empty">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>

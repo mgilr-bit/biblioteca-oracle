@@ -1,5 +1,5 @@
 """Servicios de gestión de editoriales."""
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy import update as sa_update
 
@@ -44,6 +44,9 @@ class EditorialService(BaseService[Editorial]):
     def get_all_flat(self) -> List[Editorial]:
         return self.repository.get_ordered_by_nombre()
 
+    def contar_libros(self) -> Dict[int, int]:
+        return self.repository.contar_libros_por_editorial()
+
     def create(self, data: dict, actor: str) -> dict:
         nombre = (data.get("nombre") or "").strip()
         if not nombre:
@@ -74,6 +77,12 @@ class EditorialService(BaseService[Editorial]):
         editorial.pais = _empty_to_null(data.get("pais"))
         editorial.sitio_web = _empty_to_null(data.get("sitio_web"))
         self.repository.mark_updated(editorial, actor=actor)
+        # libros.editorial es copia del nombre: se mantiene al día al renombrar.
+        self.repository.session.execute(
+            sa_update(Libro)
+            .where(Libro.id_editorial == id_editorial)
+            .values(editorial=nombre)
+        )
         self.repository.flush()
 
         return {"success": True, "message": "Editorial actualizada exitosamente"}

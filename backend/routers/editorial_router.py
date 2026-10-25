@@ -35,9 +35,16 @@ def get_editoriales(
     session: Session = Depends(get_db_session),
     user=Depends(READ),
 ):
-    result = EditorialService(session).get_all(page, per_page)
+    service = EditorialService(session)
+    result = service.get_all(page, per_page)
+    conteo = service.contar_libros()
     payload = EditorialListResponse(
-        editoriales=[EditorialResponse.model_validate(e) for e in result["editoriales"]],
+        editoriales=[
+            EditorialResponse.model_validate(e).model_copy(
+                update={"total_libros": conteo.get(e.id_editorial, 0)}
+            )
+            for e in result["editoriales"]
+        ],
         page=result["page"],
         per_page=result["per_page"],
         total=result["total"],

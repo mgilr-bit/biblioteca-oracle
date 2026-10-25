@@ -12,10 +12,12 @@ from sqlalchemy import delete, text
 
 from config.database import SessionLocal
 from core.config import settings
+from models.editorial import Editorial
 from models.libro import Libro
 from models.multa import Multa
 from models.prestamo import Prestamo
 from models.usuario import Usuario
+from repositories.editorial_repository import EditorialRepository
 from utils.security import hash_password
 
 USUARIOS = [
@@ -34,7 +36,7 @@ LIBROS = [
     ("Rayuela", "Julio Cortazar", "978-8437604572", 1963, "Novela Experimental", 2, "Editorial Sudamericana"),
     ("La Sombra del Viento", "Carlos Ruiz Zafon", "978-8408043640", 2001, "Misterio", 6, "Editorial Planeta"),
     ("Los Detectives Salvajes", "Roberto Bolano", "978-8433920850", 1998, "Novela", 3, "Editorial Anagrama"),
-    ("Pedro Paramo", "Juan Rulfo", "978-0802133908", 1955, "Realismo Magico", 4, "Fondo de Cultura Economica"),
+    ("Pedro Paramo", "Juan Rulfo", "978-0802133908", 1955, "Realismo Magico", 4, "Fondo de Cultura Económica"),
     ("Ficciones", "Jorge Luis Borges", "978-0802130303", 1944, "Cuentos", 5, "Editorial Sur"),
     ("El Aleph", "Jorge Luis Borges", "978-8499089515", 1949, "Cuentos", 4, "Editorial Losada"),
 ]
@@ -55,8 +57,19 @@ def seed_usuarios(session):
     print(f"Total: {len(USUARIOS)} usuarios insertados")
 
 
+def get_or_create_editorial(session, nombre):
+    # Las editoriales de demo las siembra la migración 0012; si faltara
+    # alguna (BD creada a mano) se agrega aquí para que el libro quede ligado.
+    repositorio = EditorialRepository(session)
+    editorial = repositorio.get_by_nombre(nombre)
+    if editorial is None:
+        editorial = repositorio.add(Editorial(nombre=nombre), actor="system")
+    return editorial
+
+
 def seed_libros(session):
-    for titulo, autor, isbn, anio, genero, copias, editorial in LIBROS:
+    for titulo, autor, isbn, anio, genero, copias, nombre_editorial in LIBROS:
+        editorial = get_or_create_editorial(session, nombre_editorial)
         session.add(
             Libro(
                 titulo=titulo,
@@ -66,7 +79,8 @@ def seed_libros(session):
                 genero=genero,
                 numero_copias=copias,
                 copias_disponibles=copias,
-                editorial=editorial,
+                id_editorial=editorial.id_editorial,
+                editorial=editorial.nombre,
                 created_by="system",
             )
         )
