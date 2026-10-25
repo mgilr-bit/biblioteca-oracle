@@ -91,9 +91,6 @@ onBeforeUnmount(() => {
         <router-link v-can:read="'Editorial'" to="/editoriales" class="app-nav__link" active-class="is-active">
           Editoriales
         </router-link>
-        <router-link v-can:read="'Ejemplar'" to="/ejemplares" class="app-nav__link" active-class="is-active">
-          Ejemplares
-        </router-link>
         <router-link v-can:read="'Reserva'" to="/reservas" class="app-nav__link" active-class="is-active">
           Reservas
         </router-link>

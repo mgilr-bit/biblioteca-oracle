@@ -2,7 +2,7 @@
 
 Solo lectura y restringido a BIBLIOTECARIO/ADMIN (Casbin). Los eventos se
 escriben desde los servicios (AuthService, PrestamoService, MultaService,
-ReservaService, UsuarioService, EjemplarService); aquí no hay escritura
+ReservaService, UsuarioService); aquí no hay escritura
 manual a la bitácora.
 """
 from typing import Optional

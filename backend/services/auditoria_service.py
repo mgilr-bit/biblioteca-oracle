@@ -2,7 +2,7 @@
 
 `registrar(...)`: punto único de escritura usado por los demás servicios
 (AuthService, PrestamoService, MultaService, ReservaService,
-UsuarioService, EjemplarService). La bitácora es append-only: cada fila se
+UsuarioService). La bitácora es append-only: cada fila se
 hace flush con la misma sesión del flujo que la emite, así un registro de
 negocio y su evento de auditoría se confirman juntos (o ninguno, si hay
 rollback).
@@ -78,10 +78,8 @@ class AuditoriaService(BaseService[Auditoria]):
             "USUARIO_ACTUALIZADO",
             "USUARIO_ELIMINADO",
             "USUARIO_ESTADO",
-            "EJEMPLAR_CREADO",
-            "EJEMPLAR_ESTADO",
             "REPORTE_GENERADO",
         ]
 
     def get_recursos_disponibles(self) -> List[str]:
-        return ["Libro", "Prestamo", "Usuario", "Reserva", "Multa", "Ejemplar", "Auth", "Reporte"]
+        return ["Libro", "Prestamo", "Usuario", "Reserva", "Multa", "Auth", "Reporte"]

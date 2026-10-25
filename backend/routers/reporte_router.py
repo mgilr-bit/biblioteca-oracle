@@ -88,18 +88,6 @@ def reporte_editoriales(
     return _responder(ReporteService(session).editoriales(user), formato, session, user)
 
 
-@router.get("/ejemplares")
-def reporte_ejemplares(
-    formato: FormatoReporte = "json",
-    id_libro: Optional[int] = Query(default=None, ge=1),
-    estado: str = Texto,
-    session: Session = Depends(get_db_session),
-    user: SessionUser = Depends(require_permission("Ejemplar", "read")),
-):
-    reporte = ReporteService(session).ejemplares(user, id_libro=id_libro, estado=estado)
-    return _responder(reporte, formato, session, user)
-
-
 @router.get("/reservas")
 def reporte_reservas(
     formato: FormatoReporte = "json",

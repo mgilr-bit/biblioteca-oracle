@@ -1,4 +1,9 @@
-"""Entidad que representa la tabla LIBROS."""
+"""Entidad que representa la tabla LIBROS.
+
+`estado` lo gestiona el bibliotecario (valores en
+`services.libro_service.LIBRO_ESTADOS`); la disponibilidad por préstamos
+sigue saliendo de `copias_disponibles`.
+"""
 from datetime import datetime
 from typing import Optional
 
@@ -27,3 +32,9 @@ class Libro(AuditMixin, table=True):
     )
     id_editorial: Optional[int] = Field(default=None, foreign_key="editoriales.id_editorial", index=True)
     editorial: Optional[str] = Field(default=None, max_length=100)
+    estado: str = Field(
+        default="DISPONIBLE",
+        max_length=20,
+        sa_column_kwargs={"server_default": text("'DISPONIBLE'")},
+    )
+    ubicacion: Optional[str] = Field(default=None, max_length=100)

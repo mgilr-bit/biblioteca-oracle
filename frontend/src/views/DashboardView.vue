@@ -69,7 +69,7 @@ async function loadLector() {
 
   const respLibros = await librosAPI.getAll(1, 100)
   const todosLosLibros = respLibros.libros || respLibros
-  librosDisponibles.value = todosLosLibros.filter((l) => l.COPIAS_DISPONIBLES > 0)
+  librosDisponibles.value = todosLosLibros.filter((l) => l.COPIAS_DISPONIBLES > 0 && l.ESTADO === 'DISPONIBLE')
 }
 
 onMounted(async () => {

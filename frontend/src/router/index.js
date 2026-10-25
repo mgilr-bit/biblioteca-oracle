@@ -36,11 +36,6 @@ const routes = [
     meta: { requiresBibliotecario: true }
   },
   {
-    path: '/ejemplares',
-    name: 'ejemplares',
-    component: () => import('../views/EjemplaresView.vue')
-  },
-  {
     path: '/reservas',
     name: 'reservas',
     component: () => import('../views/ReservasView.vue')

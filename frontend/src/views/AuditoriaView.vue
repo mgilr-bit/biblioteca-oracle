@@ -33,9 +33,7 @@ const ACCION_STAMP = {
   USUARIO_CREADO: 'stamp-primary',
   USUARIO_ACTUALIZADO: 'stamp-neutral',
   USUARIO_ELIMINADO: 'stamp-danger',
-  USUARIO_ESTADO: 'stamp-neutral',
-  EJEMPLAR_CREADO: 'stamp-primary',
-  EJEMPLAR_ESTADO: 'stamp-neutral'
+  USUARIO_ESTADO: 'stamp-neutral'
 }
 
 function fecha(value) {

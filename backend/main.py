@@ -24,7 +24,6 @@ from routers import (
     auditoria_router,
     auth_router,
     editorial_router,
-    ejemplar_router,
     libro_router,
     multa_router,
     notificacion_router,
@@ -154,7 +153,6 @@ app.include_router(libro_router, prefix="/api/libros")
 app.include_router(usuario_router, prefix="/api/usuarios")
 app.include_router(prestamo_router, prefix="/api/prestamos")
 app.include_router(editorial_router, prefix="/api/editoriales")
-app.include_router(ejemplar_router, prefix="/api/ejemplares")
 app.include_router(reserva_router, prefix="/api/reservas")
 app.include_router(notificacion_router, prefix="/api/notificaciones")
 app.include_router(multa_router, prefix="/api/multas")
@@ -174,7 +172,6 @@ def home():
             "usuarios": "/api/usuarios",
             "prestamos": "/api/prestamos",
             "editoriales": "/api/editoriales",
-            "ejemplares": "/api/ejemplares",
             "reservas": "/api/reservas",
             "notificaciones": "/api/notificaciones",
             "multas": "/api/multas",

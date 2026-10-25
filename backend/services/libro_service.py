@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 MAX_RESULTADOS = 2000
 PER_PAGE_DEFAULT = 100
 
+# Estados que gestiona el bibliotecario. Solo un libro DISPONIBLE se presta
+# o reserva (ver PrestamoService/ReservaService).
+LIBRO_ESTADOS = ("DISPONIBLE", "DANADO", "REPARACION", "BAJA")
+ESTADO_ETIQUETAS = {"DISPONIBLE": "disponible", "DANADO": "dañado", "REPARACION": "en reparación", "BAJA": "de baja"}
+
 
 class LibroService(BaseService[Libro]):
     not_found_message = LibroMessages.NOT_FOUND
@@ -98,6 +103,8 @@ class LibroService(BaseService[Libro]):
             copias_disponibles=numero_copias,
             id_editorial=id_editorial,
             editorial=editorial,
+            estado=_validar_estado(data.get("estado")),
+            ubicacion=_empty_to_null(data.get("ubicacion")),
         )
         self.repository.add(libro, actor=actor)
 
@@ -122,6 +129,7 @@ class LibroService(BaseService[Libro]):
             )
 
         id_editorial, editorial = self._resolver_editorial(data, actor)
+        estado = _validar_estado(data.get("estado") or libro.estado)
 
         libro.titulo = titulo
         libro.autor = autor
@@ -132,6 +140,8 @@ class LibroService(BaseService[Libro]):
         libro.copias_disponibles = nuevas_disponibles
         libro.id_editorial = id_editorial
         libro.editorial = editorial
+        libro.estado = estado
+        libro.ubicacion = _empty_to_null(data.get("ubicacion"))
         self.repository.mark_updated(libro, actor=actor)
         self.repository.flush()
 
@@ -160,3 +170,17 @@ class LibroService(BaseService[Libro]):
 
     def get_estadisticas(self) -> dict:
         return self.repository.get_estadisticas()
+
+
+def _validar_estado(valor) -> str:
+    estado = (valor or "DISPONIBLE").upper().strip()
+    if estado not in LIBRO_ESTADOS:
+        raise ValidationError(LibroMessages.ESTADO_INVALIDO.format(estados=", ".join(LIBRO_ESTADOS)))
+    return estado
+
+
+def _empty_to_null(value) -> Optional[str]:
+    if value is None:
+        return None
+    stripped = str(value).strip()
+    return stripped or None

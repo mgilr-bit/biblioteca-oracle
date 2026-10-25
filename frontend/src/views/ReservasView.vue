@@ -16,6 +16,8 @@ const esBibliotecario = computed(() => auth.user?.rol === 'BIBLIOTECARIO' || aut
 
 const reservas = ref([])
 const libros = ref([])
+// Dañados, en reparación o de baja no se reservan (el backend lo valida igual).
+const librosReservables = computed(() => libros.value.filter((l) => l.ESTADO === 'DISPONIBLE'))
 const usuarios = ref([])
 const loading = ref(true)
 const filtroEstado = ref('')
@@ -233,7 +235,7 @@ onMounted(() => {
           <label for="libroRes">Libro *</label>
           <select id="libroRes" v-model="form.id_libro" class="select">
             <option value="">Seleccione un libro…</option>
-            <option v-for="l in libros" :key="l.ID_LIBRO" :value="l.ID_LIBRO">
+            <option v-for="l in librosReservables" :key="l.ID_LIBRO" :value="l.ID_LIBRO">
               {{ l.TITULO }} ({{ l.COPIAS_DISPONIBLES }} disp.)
             </option>
           </select>

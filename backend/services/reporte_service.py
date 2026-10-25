@@ -19,7 +19,6 @@ from core.sessions import SessionUser
 from core.zona_horaria import a_local, ahora_utc
 from repositories.auditoria_repository import AuditoriaRepository
 from repositories.editorial_repository import EditorialRepository
-from repositories.ejemplar_repository import EjemplarRepository
 from repositories.libro_repository import LibroRepository
 from repositories.usuario_repository import UsuarioRepository
 from schemas.reporte import (
@@ -30,7 +29,6 @@ from schemas.reporte import (
     construir_tabla,
 )
 from services.analytics_service import AnalyticsService
-from services.ejemplar_service import EJEMPLAR_ESTADOS
 from services.multa_service import MultaService
 from services.notificacion_service import NotificacionService
 from services.prestamo_service import PrestamoService
@@ -134,6 +132,8 @@ class ReporteService:
                 "anio_publicacion": l.anio_publicacion,
                 "genero": l.genero,
                 "editorial": l.editorial,
+                "estado": l.estado,
+                "ubicacion": l.ubicacion,
                 "numero_copias": l.numero_copias,
                 "copias_disponibles": l.copias_disponibles,
                 "copias_prestadas": max((l.numero_copias or 0) - (l.copias_disponibles or 0), 0),
@@ -166,6 +166,7 @@ class ReporteService:
                 _ind("Copias disponibles", sum(f["copias_disponibles"] or 0 for f in filas)),
                 _ind("Copias prestadas", sum(f["copias_prestadas"] for f in filas)),
                 _ind("Títulos sin copias disponibles", sum(1 for f in filas if not f["copias_disponibles"])),
+                _ind("Títulos no disponibles (dañados, en reparación o de baja)", sum(1 for f in filas if f["estado"] != "DISPONIBLE")),
                 _ind(
                     f"Títulos con bajo stock (< {UMBRAL_BAJO_STOCK} disponibles)",
                     sum(1 for f in filas if (f["copias_disponibles"] or 0) < UMBRAL_BAJO_STOCK),
@@ -182,6 +183,8 @@ class ReporteService:
                         _col("anio_publicacion", "Año"),
                         _col("genero", "Género"),
                         _col("editorial", "Editorial"),
+                        _col("estado", "Estado"),
+                        _col("ubicacion", "Ubicación"),
                         _col("numero_copias", "Copias", "entero", sumar=True),
                         _col("copias_disponibles", "Disponibles", "entero", sumar=True),
                         _col("copias_prestadas", "Prestadas", "entero", sumar=True),
@@ -240,58 +243,6 @@ class ReporteService:
                     filas,
                 )
             ],
-        )
-
-    def ejemplares(self, usuario: SessionUser, id_libro: Optional[int] = None, estado: str = "") -> ReporteResponse:
-        estado = estado.upper().strip()
-        notas: list[str] = []
-        titulo_libro = None
-        if id_libro:
-            libro = LibroRepository(self.session).get_by_id(id_libro)
-            titulo_libro = f"{libro.titulo} (#{id_libro})" if libro else f"#{id_libro}"
-
-        registros = _truncar(
-            EjemplarRepository(self.session).get_paginated_with_details(
-                0, LIMITE_FILAS + 1, id_libro=id_libro, estado=estado or None
-            ),
-            notas,
-        )
-        filas = [
-            {
-                "codigo_ejemplar": ejemplar.codigo_ejemplar,
-                "titulo": titulo,
-                "id_libro": ejemplar.id_libro,
-                "estado": ejemplar.estado,
-                "ubicacion": ejemplar.ubicacion,
-                "fecha_adquisicion": ejemplar.fecha_adquisicion,
-            }
-            for ejemplar, titulo in registros
-        ]
-        por_estado = Counter(f["estado"] for f in filas)
-
-        return self._reporte(
-            "ejemplares",
-            "Reporte de ejemplares",
-            usuario,
-            subtitulo="Copias físicas por libro, con su estado y ubicación",
-            filtros=_filtros(("Libro", titulo_libro), ("Estado", estado)),
-            indicadores=[_ind("Ejemplares", len(filas))]
-            + [_ind(f"En estado {e}", por_estado[e]) for e in EJEMPLAR_ESTADOS if por_estado[e]],
-            tablas=[
-                construir_tabla(
-                    "Ejemplares",
-                    [
-                        _col("codigo_ejemplar", "Código"),
-                        _col("titulo", "Libro"),
-                        _col("id_libro", "ID libro"),
-                        _col("estado", "Estado"),
-                        _col("ubicacion", "Ubicación"),
-                        _col("fecha_adquisicion", "Adquirido", "fecha"),
-                    ],
-                    filas,
-                )
-            ],
-            notas=notas,
         )
 
     # --- Circulación --------------------------------------------------------
@@ -362,7 +313,6 @@ class ReporteService:
         if ver_todo:
             columnas.append(_col("nombre_usuario", "Usuario"))
         columnas += [
-            _col("codigo_ejemplar", "Ejemplar"),
             _col("fecha_prestamo", "Prestado", "fecha"),
             _col("fecha_devolucion_esperada", "Devolución esperada", "fecha"),
             _col("fecha_devolucion_real", "Devuelto", "fecha"),

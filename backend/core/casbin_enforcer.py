@@ -93,13 +93,6 @@ DEFAULT_POLICIES = [
     ("BIBLIOTECARIO", "Editorial", "delete", "false"),
     ("LECTOR", "Editorial", "read", "false"),
     ("PROFESOR", "Editorial", "read", "false"),
-    # Ejemplares: venta/trazabilidad de copias físicas; lectura libre, gestión BIBLIOTECARIO/ADMIN.
-    ("BIBLIOTECARIO", "Ejemplar", "read", "false"),
-    ("BIBLIOTECARIO", "Ejemplar", "create", "false"),
-    ("BIBLIOTECARIO", "Ejemplar", "update", "false"),
-    ("BIBLIOTECARIO", "Ejemplar", "delete", "false"),
-    ("LECTOR", "Ejemplar", "read", "false"),
-    ("PROFESOR", "Ejemplar", "read", "false"),
     # Reservas: biblioteca gestiona todas; LECTOR/PROFESOR crea y atiende las suyas.
     ("BIBLIOTECARIO", "Reserva", "read", "false"),
     ("BIBLIOTECARIO", "Reserva", "create", "false"),
@@ -140,6 +133,13 @@ REVOKED_POLICIES = [
     ("BIBLIOTECARIO", "Auditoria", "read", "false"),
     # El LECTOR ya no registra préstamos por su cuenta (QA 2026-10-06).
     ("LECTOR", "Prestamo", "create", "false"),
+    # Se retiró el módulo de ejemplares: estado y ubicación viven en el libro (2026-10-24).
+    ("BIBLIOTECARIO", "Ejemplar", "read", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "create", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "update", "false"),
+    ("BIBLIOTECARIO", "Ejemplar", "delete", "false"),
+    ("LECTOR", "Ejemplar", "read", "false"),
+    ("PROFESOR", "Ejemplar", "read", "false"),
 ]
 
 _adapter = Adapter(engine, db_class=OracleCasbinRule)

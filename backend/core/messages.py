@@ -37,6 +37,7 @@ class LibroMessages:
     CAMPOS_REQUERIDOS = "Los campos titulo y autor son requeridos"
     COPIAS_REQUERIDO = "copias_disponibles es requerido"
     EDITORIAL_NO_EXISTE = "La editorial seleccionada no existe"
+    ESTADO_INVALIDO = "Estado inválido. Debe ser uno de: {estados}"
 
 
 class EditorialMessages:
@@ -45,21 +46,12 @@ class EditorialMessages:
     NOMBRE_DUPLICADO = "Ya existe una editorial con ese nombre"
 
 
-class EjemplarMessages:
-    NOT_FOUND = "Ejemplar no encontrado"
-    ID_LIBRO_REQUERIDO = "id_libro es requerido"
-    LIBRO_NO_EXISTE = "El libro no existe"
-    CODIGO_DUPLICADO = "Ya existe un ejemplar con ese código"
-    ESTADO_INVALIDO = "Estado inválido. Debe ser uno de: {estados}"
-    NO_CAMBIAR_PRESTADO = "Un ejemplar prestado no puede cambiar de estado manualmente; regístrelo como devuelto primero"
-    NO_BORRAR_PRESTADO = "No se puede eliminar un ejemplar prestado; devuélvalo primero"
-
-
 class ReservaMessages:
     NOT_FOUND = "Reserva no encontrada"
     CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
     ID_USUARIO_REQUERIDO = "id_usuario es requerido"
     LIBRO_NO_EXISTE = "El libro no existe"
+    LIBRO_NO_DISPONIBLE = "El libro no se puede reservar porque está {estado}"
     MAX_RESERVAS = "Límite de {max} reservas simultáneas alcanzado"
     RESERVA_DUPLICADA = "Ya tiene una reserva activa para este libro"
     NO_CANCELABLE = "Solo se pueden cancelar reservas activas"
@@ -79,6 +71,7 @@ class PrestamoMessages:
     YA_DEVUELTO = "El préstamo ya fue devuelto"
     CAMPOS_REQUERIDOS = "id_libro e id_usuario son requeridos"
     SIN_COPIAS = "No hay copias disponibles"
+    LIBRO_NO_DISPONIBLE = "El libro no se puede prestar porque está {estado}"
     MULTAS_PENDIENTES = "El usuario tiene multas pendientes de pago"
     DEVOLUCION_CON_MULTA = (
         "Devolución registrada. Se generó una multa de Q{monto} por {dias} día(s) de retraso"

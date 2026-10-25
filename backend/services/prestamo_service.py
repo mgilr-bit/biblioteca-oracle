@@ -11,8 +11,8 @@ from repositories.prestamo_repository import PrestamoRepository
 from schemas.prestamo import PrestamoResponse
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
-from services.ejemplar_service import EjemplarService
 from services.exceptions import BusinessRuleError, ValidationError
+from services.libro_service import ESTADO_ETIQUETAS
 from services.multa_service import MultaService
 from services.reserva_service import ReservaService
 
@@ -25,7 +25,6 @@ class PrestamoService(BaseService[Prestamo]):
     def __init__(self, session):
         super().__init__(PrestamoRepository(session))
         self.libro_repo = LibroRepository(session)
-        self.ejemplar_service = EjemplarService(session)
         self.reserva_service = ReservaService(session)
         self.multa_service = MultaService(session)
 
@@ -44,8 +43,6 @@ class PrestamoService(BaseService[Prestamo]):
             id_prestamo=prestamo.id_prestamo,
             id_libro=prestamo.id_libro,
             id_usuario=prestamo.id_usuario,
-            id_ejemplar=prestamo.id_ejemplar,
-            codigo_ejemplar=row[4] if len(row) > 4 else None,
             fecha_prestamo=prestamo.fecha_prestamo,
             fecha_devolucion_esperada=prestamo.fecha_devolucion_esperada,
             fecha_devolucion_real=prestamo.fecha_devolucion_real,
@@ -93,6 +90,8 @@ class PrestamoService(BaseService[Prestamo]):
             raise BusinessRuleError(PrestamoMessages.MULTAS_PENDIENTES)
 
         libro = self.libro_repo.get_by_id(id_libro)
+        if libro and libro.estado != "DISPONIBLE":
+            raise BusinessRuleError(PrestamoMessages.LIBRO_NO_DISPONIBLE.format(estado=ESTADO_ETIQUETAS.get(libro.estado, libro.estado)))
         if not libro or libro.copias_disponibles <= 0:
             raise BusinessRuleError(PrestamoMessages.SIN_COPIAS)
 
@@ -102,12 +101,6 @@ class PrestamoService(BaseService[Prestamo]):
             fecha_devolucion_esperada=ahora_utc() + timedelta(days=dias),
         )
         self.repository.add(prestamo, actor=requesting_user.email)
-
-        # Fase 2: asocia la copia física disponible al préstamo (si hay ejemplares).
-        ejemplar = self.ejemplar_service.asignar_a_prestamo(id_libro)
-        if ejemplar:
-            prestamo.id_ejemplar = ejemplar.id_ejemplar
-            self.repository.flush()
 
         AuditoriaService(self.repository.session).registrar(
             "PRESTAMO_CREADO",
@@ -130,9 +123,6 @@ class PrestamoService(BaseService[Prestamo]):
         prestamo.fecha_devolucion_real = ahora_utc()
         self.repository.mark_updated(prestamo, actor=actor)
         self.repository.flush()
-
-        if prestamo.id_ejemplar:
-            self.ejemplar_service.liberar(prestamo.id_ejemplar)
 
         # Fase 3 (reservas): al volver una copia, la reserva FIFO más antigua
         # pasa a CUMPLIDA y abre su ventana de recogida para el reservante.

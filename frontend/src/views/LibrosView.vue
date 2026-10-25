@@ -12,6 +12,15 @@ const can = useCan()
 const toast = useToast()
 const { ask } = useConfirm()
 
+// Estados que gestiona el bibliotecario (LIBRO_ESTADOS en el backend).
+// Solo un libro DISPONIBLE se puede prestar o reservar.
+const ESTADOS = {
+  DISPONIBLE: { label: 'Disponible', stamp: 'stamp-success' },
+  DANADO: { label: 'Dañado', stamp: 'stamp-danger' },
+  REPARACION: { label: 'En reparación', stamp: 'stamp-warning' },
+  BAJA: { label: 'De baja', stamp: 'stamp-neutral' }
+}
+
 const allLibros = ref([])
 const generos = ref([])
 const editoriales = ref([])
@@ -89,7 +98,7 @@ const editingId = ref(null)
 const form = ref(emptyForm())
 
 function emptyForm() {
-  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', idEditorial: '', copias: 1 }
+  return { titulo: '', autor: '', isbn: '', anio: '', genero: '', idEditorial: '', estado: 'DISPONIBLE', ubicacion: '', copias: 1 }
 }
 
 function openCreate() {
@@ -107,6 +116,8 @@ function openEdit(libro) {
     anio: libro.ANIO_PUBLICACION || '',
     genero: libro.GENERO || '',
     idEditorial: libro.ID_EDITORIAL || '',
+    estado: libro.ESTADO || 'DISPONIBLE',
+    ubicacion: libro.UBICACION || '',
     copias: libro.NUMERO_COPIAS
   }
   showModal.value = true
@@ -123,6 +134,8 @@ async function saveLibro() {
     anio_publicacion: form.value.anio ? parseInt(form.value.anio) : null,
     genero: emptyToNull(form.value.genero),
     id_editorial: form.value.idEditorial ? parseInt(form.value.idEditorial) : null,
+    estado: form.value.estado,
+    ubicacion: emptyToNull(form.value.ubicacion),
     numero_copias: form.value.copias ? parseInt(form.value.copias) : 1
   }
 
@@ -203,7 +216,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>ID</th><th>Título</th><th>Autor</th><th>ISBN</th><th>Año</th>
-              <th>Género</th><th>Editorial</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
+              <th>Género</th><th>Editorial</th><th>Estado</th><th>Ubicación</th><th>Copias</th><th>Disponibles</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -215,6 +228,12 @@ onMounted(() => {
               <td>{{ libro.ANIO_PUBLICACION || '-' }}</td>
               <td>{{ libro.GENERO || '-' }}</td>
               <td>{{ libro.EDITORIAL || '-' }}</td>
+              <td>
+                <span class="stamp" :class="ESTADOS[libro.ESTADO]?.stamp || 'stamp-neutral'">
+                  {{ ESTADOS[libro.ESTADO]?.label || libro.ESTADO }}
+                </span>
+              </td>
+              <td>{{ libro.UBICACION || '-' }}</td>
               <td>{{ libro.NUMERO_COPIAS }}</td>
               <td>
                 <span class="stamp" :class="libro.COPIAS_DISPONIBLES > 0 ? 'stamp-success' : 'stamp-danger'">
@@ -230,7 +249,7 @@ onMounted(() => {
               </td>
             </tr>
             <tr v-if="!loading && !paginatedLibros.length">
-              <td colspan="10" class="cell-empty">{{ emptyMessage }}</td>
+              <td colspan="12" class="cell-empty">{{ emptyMessage }}</td>
             </tr>
           </tbody>
         </table>
@@ -275,6 +294,18 @@ onMounted(() => {
             <option value="">Sin editorial</option>
             <option v-for="e in editoriales" :key="e.ID_EDITORIAL" :value="e.ID_EDITORIAL">{{ e.NOMBRE }}</option>
           </select>
+        </div>
+        <div class="row-fields">
+          <div class="field">
+            <label for="estado">Estado</label>
+            <select id="estado" v-model="form.estado" class="select">
+              <option v-for="(info, valor) in ESTADOS" :key="valor" :value="valor">{{ info.label }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ubicacion">Ubicación</label>
+            <input id="ubicacion" v-model="form.ubicacion" class="input" maxlength="100" placeholder="Ej. Estante A-3" />
+          </div>
         </div>
         <div class="field" style="margin-bottom:0">
           <label for="copias">Número de copias</label>

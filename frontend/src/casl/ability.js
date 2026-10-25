@@ -38,7 +38,6 @@ export function buildAbilityFor(user) {
     can(['read', 'update'], 'Usuario', { id_usuario: user.id })
     can(['create', 'read', 'cancel'], 'Reserva', { id_usuario: user.id })
     can('read', 'Editorial')
-    can('read', 'Ejemplar')
     can('read', 'Multa')
   }
 

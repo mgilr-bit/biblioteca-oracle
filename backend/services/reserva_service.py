@@ -23,6 +23,7 @@ from schemas.reserva import ReservaResponse
 from services.auditoria_service import AuditoriaService
 from services.base import BaseService
 from services.exceptions import BusinessRuleError, ValidationError
+from services.libro_service import ESTADO_ETIQUETAS
 
 MAX_ACTIVAS_POR_USUARIO = 3
 DIAS_VALIDEZ = 3  # ventana de recogida una vez la reserva pasa a CUMPLIDA
@@ -78,6 +79,8 @@ class ReservaService(BaseService[Reserva]):
         libro = self.libro_repo.get_by_id(id_libro)
         if not libro:
             raise ValidationError(ReservaMessages.LIBRO_NO_EXISTE)
+        if libro.estado != "DISPONIBLE":
+            raise BusinessRuleError(ReservaMessages.LIBRO_NO_DISPONIBLE.format(estado=ESTADO_ETIQUETAS.get(libro.estado, libro.estado)))
 
         if self.repository.count_activas_por_usuario(id_usuario) >= MAX_ACTIVAS_POR_USUARIO:
             raise BusinessRuleError(
